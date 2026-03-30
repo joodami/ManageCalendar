@@ -8,62 +8,110 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background: #f8fafc; 
+            min-height: 100vh; 
+        }
         
-        /* ปรับแต่งปฏิทินให้ดูทันสมัย */
-        .fc { background: white; border-radius: 1.5rem; overflow: hidden; padding: 10px; border: none !important; }
-        .fc-header-toolbar { padding: 10px; flex-wrap: wrap; gap: 10px; }
-        .fc-event { border-radius: 8px !important; border: none !important; padding: 4px 8px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; }
-        .fc-event:hover { transform: scale(1.02); }
-        .fc-daygrid-event-dot { border-width: 4px !important; }
-        .fc-toolbar-title { font-size: 1.25rem !important; color: #1e293b; font-weight: 600; }
-        
-        /* ปรับแต่งสำหรับมือถือ */
-        @media (max-width: 768px) {
-            .fc-toolbar-title { font-size: 1rem !important; }
-            .fc-header-toolbar { flex-direction: column; align-items: center; }
-            .fc-button { padding: 4px 8px !important; font-size: 0.8rem !important; }
-            body { padding: 10px !important; }
+        /* ปรับแต่งปฏิทิน */
+        .fc { 
+            background: white; 
+            border-radius: 1.5rem; 
+            padding: 1.25rem; 
+            border: none !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .fc-header-toolbar { 
+            margin-bottom: 1.5rem !important;
+            gap: 10px;
+        }
+        .fc-event { 
+            border-radius: 6px !important; 
+            border: none !important; 
+            padding: 2px 6px !important; 
+            font-weight: 300;
+        }
+        .fc-toolbar-title { 
+            font-size: 1.2rem !important; 
+            font-weight: 600; 
+            color: #1e293b;
         }
 
-        /* ปุ่ม Filter สีสดใส */
-        .filter-btn { transition: all 0.3s; border-width: 2px; }
-        input[type="checkbox"]:checked + label { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* ปรับแต่ง Checkbox ให้สวยและสดใส */
+        .custom-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .filter-item:hover {
+            border-color: #cbd5e1;
+            background: #f1f5f9;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .fc-header-toolbar { 
+                display: flex !important;
+                flex-direction: column !important; 
+                align-items: center !important; 
+            }
+            .fc-toolbar-chunk { margin-bottom: 5px; }
+            .fc-button { font-size: 0.85rem !important; }
+            body { padding: 10px !important; }
+            .filter-container { justify-content: start !important; overflow-x: auto; padding-bottom: 10px; }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-6 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 tracking-tight">ระบบปฏิทินกิจกรรมรวม</h1>
-            <p class="text-indigo-600 font-medium">จัดการตารางงานให้ชัดเจน เข้าถึงง่าย</p>
+        <header class="mb-8">
+            <div class="text-center md:text-left mb-6">
+                <h1 class="text-3xl font-bold text-slate-800">ปฏิทินกิจกรรมรวม</h1>
+                <p class="text-slate-500 text-lg">Phiman Phitthayasan School</p>
+            </div>
             
-            <div class="mt-6 flex flex-wrap justify-center gap-3">
-                <div class="relative">
-                    <input type="checkbox" id="filter-director" checked onchange="updateFilter()" class="hidden">
-                    <label for="filter-director" class="filter-btn flex items-center px-4 py-2 rounded-full bg-white border-[#8B5CF6] text-[#8B5CF6] cursor-pointer hover:bg-[#8B5CF6] hover:text-white">
-                        <span class="w-3 h-3 rounded-full bg-[#8B5CF6] mr-2"></span> ผู้อำนวยการ
+            <div class="filter-container flex flex-wrap gap-4 justify-center md:justify-start">
+                <div class="filter-item">
+                    <input type="checkbox" id="filter-director" checked onchange="updateFilter()" 
+                           class="custom-checkbox accent-[#8B5CF6]">
+                    <label for="filter-director" class="ml-3 text-slate-700 cursor-pointer font-medium">
+                        ตารางงานผู้อำนวยการ
                     </label>
                 </div>
-                <div class="relative">
-                    <input type="checkbox" id="filter-school" checked onchange="updateFilter()" class="hidden">
-                    <label for="filter-school" class="filter-btn flex items-center px-4 py-2 rounded-full bg-white border-[#0EA5E9] text-[#0EA5E9] cursor-pointer hover:bg-[#0EA5E9] hover:text-white">
-                        <span class="w-3 h-3 rounded-full bg-[#0EA5E9] mr-2"></span> กิจกรรมโรงเรียน
+                <div class="filter-item">
+                    <input type="checkbox" id="filter-school" checked onchange="updateFilter()" 
+                           class="custom-checkbox accent-[#0EA5E9]">
+                    <label for="filter-school" class="ml-3 text-slate-700 cursor-pointer font-medium">
+                        กิจกรรมโรงเรียน
                     </label>
                 </div>
-                <div class="relative">
-                    <input type="checkbox" id="filter-vehicle" checked onchange="updateFilter()" class="hidden">
-                    <label for="filter-vehicle" class="filter-btn flex items-center px-4 py-2 rounded-full bg-white border-[#F43F5E] text-[#F43F5E] cursor-pointer hover:bg-[#F43F5E] hover:text-white">
-                        <span class="w-3 h-3 rounded-full bg-[#F43F5E] mr-2"></span> งานยานพาหนะ
+                <div class="filter-item">
+                    <input type="checkbox" id="filter-vehicle" checked onchange="updateFilter()" 
+                           class="custom-checkbox accent-[#F43F5E]">
+                    <label for="filter-vehicle" class="ml-3 text-slate-700 cursor-pointer font-medium">
+                        งานยานพาหนะ
                     </label>
                 </div>
             </div>
         </header>
 
-        <div class="shadow-2xl rounded-3xl overflow-hidden relative border border-white">
-            <div id="loading" class="absolute inset-0 bg-white/90 z-10 flex flex-col justify-center items-center font-bold text-indigo-600">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-                กำลังโหลดข้อมูลกิจกรรม...
+        <div class="relative min-h-[500px]">
+            <div id="loading" class="absolute inset-0 bg-white/80 z-10 flex flex-col justify-center items-center rounded-3xl">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-2"></div>
+                <p class="text-indigo-600 font-semibold">กำลังโหลดข้อมูล...</p>
             </div>
             <div id='calendar'></div>
         </div>
@@ -72,30 +120,37 @@
     <script>
         let calendar;
         let allEventsRaw = [];
+        // ใช้ URL เดิมของคุณ
         const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
 
         document.addEventListener('DOMContentLoaded', async function() {
             const calendarEl = document.getElementById('calendar');
             
-            // ตรวจสอบขนาดหน้าจอเพื่อเลือกมุมมองเริ่มต้น
-            const initialView = window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth';
+            // ตรวจสอบขนาดจอเพื่อเลือกมุมมอง (มือถือเปิดมาเป็น List เลยจะดูง่ายกว่า)
+            const isMobile = window.innerWidth < 768;
 
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: initialView,
+                initialView: isMobile ? 'listMonth' : 'dayGridMonth',
                 locale: 'th',
                 height: 'auto',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: window.innerWidth < 768 ? 'listMonth,dayGridMonth' : 'dayGridMonth,timeGridWeek,listMonth'
+                    right: isMobile ? 'listMonth,dayGridMonth' : 'dayGridMonth,timeGridWeek,listMonth'
                 },
-                buttonText: { today: 'วันนี้', month: 'เดือน', week: 'สัปดาห์', list: 'รายการ' },
+                buttonText: {
+                    today: 'วันนี้',
+                    month: 'เดือน',
+                    week: 'สัปดาห์',
+                    list: 'รายการ'
+                },
                 events: function(fetchInfo, successCallback, failureCallback) {
                     successCallback(filterEvents(allEventsRaw));
                 },
                 eventClick: function(info) {
-                    // ปรับแต่ง Popup ให้สวยขึ้น (ใช้ UI พื้นฐานไปก่อน)
-                    alert('📌 ' + info.event.title + '\n🏢 ฝ่าย: ' + info.event.extendedProps.dept + (info.event.extendedProps.description ? '\n📝 รายละเอียด: ' + info.event.extendedProps.description : ''));
+                    alert('📌 ' + info.event.title + 
+                          '\n🏢 ฝ่าย: ' + info.event.extendedProps.dept + 
+                          (info.event.extendedProps.description ? '\n📝 รายละเอียด: ' + info.event.extendedProps.description : ''));
                 }
             });
 
@@ -105,7 +160,7 @@
                 document.getElementById('loading').classList.add('hidden');
                 calendar.render();
             } catch (error) {
-                document.getElementById('loading').innerHTML = '<span class="text-red-500">❌ โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</span>';
+                document.getElementById('loading').innerHTML = '<p class="text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้</p>';
             }
         });
 
@@ -123,19 +178,9 @@
         }
 
         function updateFilter() {
-            calendar.refetchEvents();
-            // ปรับแต่งสีปุ่มเมื่อถูกเลือก
-            ['director', 'school', 'vehicle'].forEach(id => {
-                const cb = document.getElementById('filter-' + id);
-                const label = cb.nextElementSibling;
-                if(cb.checked) {
-                    label.style.background = label.style.borderColor;
-                    label.style.color = 'white';
-                } else {
-                    label.style.background = 'white';
-                    label.style.color = label.style.borderColor;
-                }
-            });
+            if (calendar) {
+                calendar.refetchEvents();
+            }
         }
     </script>
 </body>
