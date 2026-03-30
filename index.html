@@ -8,110 +8,61 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        body { 
-            font-family: 'Prompt', sans-serif; 
-            background: #f8fafc; 
-            min-height: 100vh; 
-        }
+        body { font-family: 'Prompt', sans-serif; background: #f8fafc; min-height: 100vh; }
+        .fc { background: white; border-radius: 1.5rem; padding: 1rem; border: none !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .fc-event { border-radius: 6px !important; border: none !important; padding: 2px 6px !important; cursor: pointer; }
+        .custom-checkbox { width: 22px; height: 22px; cursor: pointer; border-radius: 6px; }
+        .filter-item { display: flex; align-items: center; background: white; padding: 10px 16px; border-radius: 15px; border: 2px solid #e2e8f0; transition: all 0.3s; }
         
-        /* ปรับแต่งปฏิทิน */
-        .fc { 
-            background: white; 
-            border-radius: 1.5rem; 
-            padding: 1.25rem; 
-            border: none !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        .fc-header-toolbar { 
-            margin-bottom: 1.5rem !important;
-            gap: 10px;
-        }
-        .fc-event { 
-            border-radius: 6px !important; 
-            border: none !important; 
-            padding: 2px 6px !important; 
-            font-weight: 300;
-        }
-        .fc-toolbar-title { 
-            font-size: 1.2rem !important; 
-            font-weight: 600; 
-            color: #1e293b;
-        }
+        /* สไตล์ Modal แทน Alert เดิม */
+        #eventModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
 
-        /* ปรับแต่ง Checkbox ให้สวยและสดใส */
-        .custom-checkbox {
-            width: 22px;
-            height: 22px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .filter-item {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 8px 16px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-        }
-        .filter-item:hover {
-            border-color: #cbd5e1;
-            background: #f1f5f9;
-        }
-
-        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .fc-header-toolbar { 
-                display: flex !important;
-                flex-direction: column !important; 
-                align-items: center !important; 
-            }
-            .fc-toolbar-chunk { margin-bottom: 5px; }
-            .fc-button { font-size: 0.85rem !important; }
+            .fc-header-toolbar { display: flex !important; flex-direction: column !important; align-items: center !important; gap: 10px; }
+            .fc-toolbar-title { font-size: 1.1rem !important; }
             body { padding: 10px !important; }
-            .filter-container { justify-content: start !important; overflow-x: auto; padding-bottom: 10px; }
         }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
+    <div id="eventModal">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-2xl font-bold text-slate-800 mb-2"></h2>
+            <p id="modalDept" class="text-sm font-semibold mb-4 px-3 py-1 rounded-full inline-block"></p>
+            <div id="modalDesc" class="text-slate-600 mb-6 whitespace-pre-line leading-relaxed"></div>
+            <button onclick="closeModal()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
     <div class="max-w-6xl mx-auto">
         <header class="mb-8">
             <div class="text-center md:text-left mb-6">
-                <h1 class="text-3xl font-bold text-slate-800">ปฏิทินกิจกรรมรวม</h1>
-                <p class="text-slate-500 text-lg">Phiman Phitthayasan School</p>
+                <h1 class="text-3xl font-bold text-slate-800">ระบบปฏิทินกิจกรรมรวม</h1>
+                <p id="instruction" class="text-indigo-600 text-lg font-medium animate-pulse">⚠️ กรุณาเลือกปฏิทินที่ต้องการดูด้านล่างนี้</p>
             </div>
             
-            <div class="filter-container flex flex-wrap gap-4 justify-center md:justify-start">
-                <div class="filter-item">
-                    <input type="checkbox" id="filter-director" checked onchange="updateFilter()" 
-                           class="custom-checkbox accent-[#8B5CF6]">
-                    <label for="filter-director" class="ml-3 text-slate-700 cursor-pointer font-medium">
-                        ตารางงานผู้อำนวยการ
-                    </label>
+            <div class="flex flex-wrap gap-4 justify-center md:justify-start">
+                <div class="filter-item border-[#8B5CF6]">
+                    <input type="checkbox" id="filter-director" onchange="updateFilter()" class="custom-checkbox accent-[#8B5CF6]">
+                    <label for="filter-director" class="ml-3 text-slate-700 cursor-pointer font-medium">ตารางงานผู้อำนวยการ</label>
                 </div>
-                <div class="filter-item">
-                    <input type="checkbox" id="filter-school" checked onchange="updateFilter()" 
-                           class="custom-checkbox accent-[#0EA5E9]">
-                    <label for="filter-school" class="ml-3 text-slate-700 cursor-pointer font-medium">
-                        กิจกรรมโรงเรียน
-                    </label>
+                <div class="filter-item border-[#0EA5E9]">
+                    <input type="checkbox" id="filter-school" onchange="updateFilter()" class="custom-checkbox accent-[#0EA5E9]">
+                    <label for="filter-school" class="ml-3 text-slate-700 cursor-pointer font-medium">กิจกรรมโรงเรียน</label>
                 </div>
-                <div class="filter-item">
-                    <input type="checkbox" id="filter-vehicle" checked onchange="updateFilter()" 
-                           class="custom-checkbox accent-[#F43F5E]">
-                    <label for="filter-vehicle" class="ml-3 text-slate-700 cursor-pointer font-medium">
-                        งานยานพาหนะ
-                    </label>
+                <div class="filter-item border-[#F43F5E]">
+                    <input type="checkbox" id="filter-vehicle" onchange="updateFilter()" class="custom-checkbox accent-[#F43F5E]">
+                    <label for="filter-vehicle" class="ml-3 text-slate-700 cursor-pointer font-medium">งานยานพาหนะ</label>
                 </div>
             </div>
         </header>
 
         <div class="relative min-h-[500px]">
-            <div id="loading" class="absolute inset-0 bg-white/80 z-10 flex flex-col justify-center items-center rounded-3xl">
+            <div id="loading" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col justify-center items-center rounded-3xl">
                 <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-2"></div>
-                <p class="text-indigo-600 font-semibold">กำลังโหลดข้อมูล...</p>
+                <p class="text-indigo-600 font-semibold">กำลังดึงข้อมูล...</p>
             </div>
             <div id='calendar'></div>
         </div>
@@ -120,49 +71,52 @@
     <script>
         let calendar;
         let allEventsRaw = [];
-        // ใช้ URL เดิมของคุณ
         const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
-            
-            // ตรวจสอบขนาดจอเพื่อเลือกมุมมอง (มือถือเปิดมาเป็น List เลยจะดูง่ายกว่า)
             const isMobile = window.innerWidth < 768;
 
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+                initialView: isMobile ? 'dayGridMonth' : 'dayGridMonth', // ปรับตามคำขอให้แสดงแบบเดือน
                 locale: 'th',
                 height: 'auto',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: isMobile ? 'listMonth,dayGridMonth' : 'dayGridMonth,timeGridWeek,listMonth'
+                    right: 'dayGridMonth,listMonth'
                 },
-                buttonText: {
-                    today: 'วันนี้',
-                    month: 'เดือน',
-                    week: 'สัปดาห์',
-                    list: 'รายการ'
-                },
+                buttonText: { today: 'วันนี้', month: 'เดือน', list: 'รายการ' },
                 events: function(fetchInfo, successCallback, failureCallback) {
                     successCallback(filterEvents(allEventsRaw));
                 },
                 eventClick: function(info) {
-                    alert('📌 ' + info.event.title + 
-                          '\n🏢 ฝ่าย: ' + info.event.extendedProps.dept + 
-                          (info.event.extendedProps.description ? '\n📝 รายละเอียด: ' + info.event.extendedProps.description : ''));
+                    showModal(info.event);
                 }
             });
-
-            try {
-                const response = await fetch(gasUrl);
-                allEventsRaw = await response.json();
-                document.getElementById('loading').classList.add('hidden');
-                calendar.render();
-            } catch (error) {
-                document.getElementById('loading').innerHTML = '<p class="text-red-500 font-bold">ไม่สามารถดึงข้อมูลได้</p>';
-            }
+            calendar.render();
         });
+
+        async function updateFilter() {
+            const checkboxes = document.querySelectorAll('.custom-checkbox:checked');
+            const instruction = document.getElementById('instruction');
+            
+            if (checkboxes.length > 0) {
+                instruction.classList.add('hidden');
+                // ถ้ายังไม่มีข้อมูลในตัวแปร ให้ไปดึงจาก GAS
+                if (allEventsRaw.length === 0) {
+                    document.getElementById('loading').classList.remove('hidden');
+                    try {
+                        const response = await fetch(gasUrl);
+                        allEventsRaw = await response.json();
+                    } catch (e) { console.error(e); }
+                    document.getElementById('loading').classList.add('hidden');
+                }
+            } else {
+                instruction.classList.remove('hidden');
+            }
+            calendar.refetchEvents();
+        }
 
         function filterEvents(events) {
             const showDirector = document.getElementById('filter-director').checked;
@@ -173,14 +127,38 @@
                 if (event.extendedProps.groupId === 'director') return showDirector;
                 if (event.extendedProps.groupId === 'school') return showSchool;
                 if (event.extendedProps.groupId === 'vehicle') return showVehicle;
-                return true;
+                return false; // ไม่เลือกอะไรเลย จะไม่แสดงอะไรเลย
             });
         }
 
-        function updateFilter() {
-            if (calendar) {
-                calendar.refetchEvents();
-            }
+        // ฟังก์ชัน Modal แทน Alert
+        function showModal(event) {
+            const modal = document.getElementById('eventModal');
+            document.getElementById('modalTitle').innerText = event.title;
+            document.getElementById('modalDept').innerText = 'ฝ่าย: ' + event.extendedProps.dept;
+            document.getElementById('modalDept').style.backgroundColor = event.backgroundColor + '20'; // สีจางๆ
+            document.getElementById('modalDept').style.color = event.backgroundColor;
+            
+            // ตรวจสอบและแสดงรายละเอียดพร้อม Link (ถ้ามี)
+            let desc = event.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+            // แปลง URL ในข้อความให้เป็น Link ที่กดได้
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            desc = desc.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank" class="text-blue-600 underline">📎 เปิดไฟล์แนบ/ลิงก์</a>';
+            });
+            
+            document.getElementById('modalDesc').innerHTML = desc;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        // ปิด Modal เมื่อคลิกพื้นหลัง
+        window.onclick = function(event) {
+            const modal = document.getElementById('eventModal');
+            if (event.target == modal) closeModal();
         }
     </script>
 </body>
