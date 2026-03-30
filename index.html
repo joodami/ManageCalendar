@@ -3,78 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบปฏิทินกิจกรรมโรงเรียน</title>
+    <title>ระบบจัดการกิจกรรมโรงเรียน</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
-        .fc-event { padding: 3px 6px; border-radius: 6px; font-weight: 300; border: none !important; }
-        .fc-toolbar-title { font-weight: 600; color: #1e293b; }
-        .legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        body { font-family: 'Prompt', sans-serif; background-color: #f0f4f8; }
+        .fc-event { cursor: pointer; padding: 2px 4px; border-radius: 4px; border: none; }
+        .filter-checkbox:checked + label { font-weight: 600; color: #1e293b; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-10">
 
     <div class="max-w-6xl mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <header class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-end">
             <div>
-                <h1 class="text-3xl font-bold text-slate-800">ปฏิทินกิจกรรมรวม</h1>
-                <p class="text-slate-500 text-lg">Phiman Phitthayasan School</p>
+                <h1 class="text-4xl font-bold text-slate-800">ปฏิทินกิจกรรมรวม</h1>
+                <p class="text-slate-500 text-lg">แสดงกิจกรรมทั้งหมดของกลุ่มสาระและกลุ่มงาน</p>
             </div>
             
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 text-sm">
-                <div class="flex items-center"><span class="legend-dot" style="background: #6366f1;"></span>ตารางงานผู้อำนวยการ/div>
-                <div class="flex items-center"><span class="legend-dot" style="background: #10b981;"></span>งานยานพาหนะ</div>
+            <div class="mt-6 md:mt-0 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-6">
+                <div class="flex items-center">
+                    <input type="checkbox" id="filter-thai" checked onchange="updateFilter()" class="filter-checkbox w-5 h-5 accent-[#6366f1]">
+                    <label for="filter-thai" class="ml-2 text-slate-600 cursor-pointer flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-[#6366f1] mr-2"></span> ตารางงานผู้อำนวยการ
+                    </label>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="filter-thai" checked onchange="updateFilter()" class="filter-checkbox w-5 h-5 accent-[#6366f1]">
+                    <label for="filter-thai" class="ml-2 text-slate-600 cursor-pointer flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-[#6fa8dc] mr-2"></span> กิจกรรมโรงเรียน
+                    </label>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="filter-vehicle" checked onchange="updateFilter()" class="filter-checkbox w-5 h-5 accent-[#10b981]">
+                    <label for="filter-vehicle" class="ml-2 text-slate-600 cursor-pointer flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-[#10b981] mr-2"></span> งานยานพาหนะ
+                    </label>
+                </div>
             </div>
         </header>
 
-        <div class="bg-white p-2 md:p-6 rounded-3xl shadow-2xl shadow-indigo-100 border border-white">
+        <div class="bg-white p-4 md:p-8 rounded-3xl shadow-2xl border border-white relative">
+            <div id="loading" class="absolute inset-0 bg-white/80 z-10 flex justify-center items-center font-bold text-indigo-600 rounded-3xl">
+                กำลังโหลดข้อมูล...
+            </div>
             <div id='calendar'></div>
         </div>
     </div>
 
     <script>
+        let calendar;
+        let allEventsRaw = [];
+        const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec'; // วาง URL ของคุณที่นี่
+
         document.addEventListener('DOMContentLoaded', async function() {
             const calendarEl = document.getElementById('calendar');
             
-            // แทนที่ด้วย URL ของ Google Apps Script ที่คุณ Deploy แล้ว
-            const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'th',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                buttonText: { today: 'วันนี้', month: 'เดือน', week: 'สัปดาห์', list: 'รายการ' },
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    successCallback(filterEvents(allEventsRaw));
+                },
+                eventClick: function(info) {
+                    alert('กิจกรรม: ' + info.event.title + '\nฝ่าย: ' + info.event.extendedProps.dept + (info.event.extendedProps.description ? '\nรายละเอียด: ' + info.event.extendedProps.description : ''));
+                }
+            });
 
-            // แสดงสถานะการโหลด
-            calendarEl.innerHTML = '<div class="flex justify-center items-center h-64 text-indigo-500 animate-pulse">กำลังดึงข้อมูลปฏิทิน...</div>';
-
+            // ดึงข้อมูลครั้งแรก
             try {
                 const response = await fetch(gasUrl);
-                const events = await response.json();
-
-                const calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    locale: 'th',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,listMonth'
-                    },
-                    buttonText: {
-                        today: 'วันนี้',
-                        month: 'เดือน',
-                        week: 'สัปดาห์',
-                        list: 'รายการ'
-                    },
-                    events: events,
-                    eventClick: function(info) {
-                        alert('กิจกรรม: ' + info.event.title + '\nฝ่ายที่รับผิดชอบ: ' + info.event.extendedProps.department);
-                    }
-                });
-                
-                calendarEl.innerHTML = ''; // ล้างสถานะการโหลด
+                allEventsRaw = await response.json();
+                document.getElementById('loading').classList.add('hidden');
                 calendar.render();
             } catch (error) {
-                calendarEl.innerHTML = '<div class="text-red-500 text-center p-10 font-bold">ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบการตั้งค่าการแชร์ปฏิทิน</div>';
-                console.error(error);
+                document.getElementById('loading').innerText = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
             }
         });
+
+        function filterEvents(events) {
+            const showThai = document.getElementById('filter-thai').checked;
+            const showVehicle = document.getElementById('filter-vehicle').checked;
+
+            return events.filter(event => {
+                if (event.extendedProps.groupId === 'thai') return showThai;
+                if (event.extendedProps.groupId === 'vehicle') return showVehicle;
+                return true;
+            });
+        }
+
+        function updateFilter() {
+            calendar.refetchEvents();
+        }
     </script>
 </body>
 </html>
