@@ -241,6 +241,7 @@
             }
         }
 
+       // --- แก้ไขส่วนการวาดรายการ (List View) เพื่อส่ง ID หรือดัชนีเฉพาะตัวไป ---
         function updateListView() {
             const container = document.getElementById('listContainer');
             const now = new Date();
@@ -271,28 +272,73 @@
                 const card = document.createElement('div');
                 card.className = 'date-group-card';
                 let rowsHtml = '';
+                
                 dateEvents.forEach(ev => {
-                    rowsHtml += `<div class="event-item-row"><div class="dept-indicator" style="background-color:${ev.backgroundColor}"></div><div class="flex-1"><div class="text-[9px] font-black uppercase" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div><div class="text-base font-bold text-slate-900">${ev.title}</div><button onclick="showDailyEvents('${dateStr}')" class="text-[11px] font-bold text-blue-700 underline">ดูรายละเอียด</button></div></div>`;
+                    // ใช้ชื่อ Title เป็น Key ในการค้นหาเฉพาะงาน (หรือใช้ Object Reference)
+                    const eventData = JSON.stringify({title: ev.title, date: dateStr}).replace(/"/g, '&quot;');
+                    rowsHtml += `
+                        <div class="event-item-row">
+                            <div class="dept-indicator" style="background-color:${ev.backgroundColor}"></div>
+                            <div class="flex-1">
+                                <div class="text-[9px] font-black uppercase" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
+                                <div class="text-base font-bold text-slate-900">${ev.title}</div>
+                                <button onclick="showSingleEvent('${eventData}')" class="text-[11px] font-bold text-blue-700 underline">ดูรายละเอียดเฉพาะงานนี้</button>
+                            </div>
+                        </div>`;
                 });
                 card.innerHTML = `<div class="date-header"><span>${dateThai}</span><span class="text-[10px] bg-white text-blue-900 px-2 py-0.5">${dateEvents.length} งาน</span></div>${rowsHtml}`;
                 container.appendChild(card);
             });
         }
 
+      // --- เพิ่มฟังก์ชันแสดงเฉพาะกิจกรรมเดียว ---
+        function showSingleEvent(jsonStr) {
+            const target = JSON.parse(jsonStr);
+            const ev = allEventsRaw.find(e => e.title === target.title && e.start.split('T')[0] === target.date);
+            
+            if (ev) {
+                const container = document.getElementById('dailyEventsContainer');
+                document.getElementById('modalDate').innerText = "รายละเอียดกิจกรรม";
+                container.innerHTML = '';
+                renderEventDetail(ev, container);
+                document.getElementById('dayModal').style.display = 'flex';
+            }
+        }
+
+ // --- แก้ไขฟังก์ชันเดิมให้เรียกใช้การวาดแบบเดียวกัน ---
         function showDailyEvents(dateStr) {
             const events = filterData(allEventsRaw).filter(e => e.start.split('T')[0] === dateStr);
             const container = document.getElementById('dailyEventsContainer');
             document.getElementById('modalDate').innerText = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
             container.innerHTML = '';
-            events.forEach(ev => {
-                const div = document.createElement('div');
-                div.className = 'p-4 bg-white border border-slate-200';
-                div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
-                let desc = (ev.extendedProps.description || 'ไม่มีข้อมูล').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="block mt-2 p-2 bg-blue-50 text-blue-700 text-center font-bold text-xs border border-blue-200">🔗 เปิดลิงก์แนบ</a>');
-                div.innerHTML = `<p class="text-[9px] font-black" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</p><h3 class="text-base font-bold text-slate-900">${ev.title}</h3><div class="text-slate-600 text-xs mt-2 border-t pt-2">${desc}</div>`;
-                container.appendChild(div);
-            });
+            events.forEach(ev => renderEventDetail(ev, container));
             document.getElementById('dayModal').style.display = 'flex';
+        }
+
+      // --- ฟังก์ชันส่วนกลางสำหรับวาดรายละเอียดและจัดการลิงก์ไฟล์แนบ ---
+        function renderEventDetail(ev, container) {
+            const div = document.createElement('div');
+            div.className = 'p-4 bg-white border border-slate-200 mb-3';
+            div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
+            
+            let description = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+            
+            // แยก Link ทั่วไป กับ Link ที่เป็นไฟล์ (Google Drive/Docs/PDF)
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            let formattedDesc = description.replace(urlRegex, (url) => {
+                if (url.includes('drive.google.com') || url.includes('docs.google.com') || url.includes('.pdf')) {
+                    return `<a href="${url}" target="_blank" class="block mt-3 p-3 bg-emerald-50 text-emerald-700 text-center font-bold text-sm border-2 border-emerald-200 rounded-sm">📄 เปิดไฟล์แนบ / เอกสารอ้างอิง</a>`;
+                } else {
+                    return `<a href="${url}" target="_blank" class="inline-block text-blue-600 underline break-all">${url}</a>`;
+                }
+            });
+
+            div.innerHTML = `
+                <p class="text-[10px] font-black" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</p>
+                <h3 class="text-lg font-bold text-slate-900 leading-tight">${ev.title}</h3>
+                <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">${formattedDesc}</div>
+            `;
+            container.appendChild(div);
         }
 
         function closeModal() { document.getElementById('dayModal').style.display = 'none'; }
