@@ -159,17 +159,21 @@
             // 1. อัปเดตรายการในหน้า List View
             updateListView();
             
-            // 2. บังคับให้ปฏิทิน "วาดใหม่ทั้งหมด" เพื่ออัปเดตตัวเลข Badge
+            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที (วิธีที่ได้ผลที่สุด)
             if (calendar) {
-                // เทคนิคการบังคับ Refresh หน้าปัจจุบันโดยไม่ต้องเปลี่ยนเดือน
-                const currentViewDate = calendar.getDate(); 
-                calendar.gotoDate(currentViewDate); 
+                // ล้าง Badge เก่าด้วย Manual เพื่อความชัวร์
+                document.querySelectorAll('.event-count-container').forEach(el => el.remove());
+
+                // บังคับให้ FullCalendar ประมวลผลเหตุการณ์ใหม่
+                // วิธีนี้จะทำให้มันวิ่งไปเรียก dayCellDidMount ของทุกช่องใหม่อีกครั้ง
+                calendar.render(); 
                 
-                // หมายเหตุ: gotoDate จะสั่งให้ปฏิทินรัน dayCellDidMount ใหม่
-                // ซึ่งจะไปเรียก renderBadge ให้วาดตัวเลขที่ถูกต้องตาม Filter ปัจจุบันค่ะ
+                // หากยังไม่อัปเดต ให้ใช้คำสั่ง "ตบ" หน้าจอเบาๆ ด้วยการเปลี่ยน View ไปมาเสี้ยววินาที
+                const currentView = calendar.view.type;
+                calendar.changeView(currentView); 
             }
 
-            // 3. จัดการสถานะปุ่ม "ทั้งหมด" (UI Logic)
+            // 3. จัดการสถานะปุ่ม "ทั้งหมด"
             const allFilters = Array.from(document.querySelectorAll('.dept-filter'));
             const checkedFilters = allFilters.filter(f => f.checked);
             const filterAll = document.getElementById('filter-all');
@@ -182,7 +186,7 @@
                 filterAll.indeterminate = false;
             } else {
                 filterAll.checked = false;
-                filterAll.indeterminate = true; // แสดงขีดลบกลางช่อง (เลือกบางส่วน)
+                filterAll.indeterminate = true; 
             }
         }
 
@@ -196,21 +200,23 @@
             });
         }
 
-        // ฟังก์ชันวาด Badge (ตัวเลข) ให้คงเดิมแต่เน้นการล้างค่าก่อนวาด
         function renderBadge(date, cellEl) {
-            // ล้าง Badge เก่าที่อาจค้างอยู่ใน Cell ออกให้หมดก่อน
+            // ป้องกันการวาดซ้อน
             const oldBadge = cellEl.querySelector('.event-count-container');
             if (oldBadge) oldBadge.remove();
 
+            // จัดการเรื่อง Timezone ให้ตรงกับ Google Calendar
             const d = new Date(date);
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
             
-            // กรองข้อมูลกิจกรรมตามที่ผู้ใช้ติ๊กเลือกไว้
+            // กรองข้อมูลตาม Checkbox ปัจจุบัน
             const filtered = filterData(allEventsRaw);
-            const events = filtered.filter(e => e.start.split('T')[0] === dateStr);
+            const events = filtered.filter(e => {
+                // ตรวจสอบว่าวันที่เริ่มกิจกรรมตรงกับช่องวันที่ในปฏิทินหรือไม่
+                return e.start.split('T')[0] === dateStr;
+            });
 
-            // ถ้ามีกิจกรรมเหลืออยู่หลังกรอง ให้วาดตัวเลขใหม่ลงไป
             if (events.length > 0) {
                 const container = document.createElement('div');
                 container.className = 'event-count-container';
