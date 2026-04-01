@@ -156,26 +156,22 @@
         }
 
       function handleFilterChange() {
-            // 1. อัปเดตรายการในหน้า List View (ถ้าเปิดอยู่จะเห็นการเปลี่ยนแปลงทันที)
+            // 1. อัปเดตรายการในหน้า List View
             updateListView();
             
-            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที
+            // 2. บังคับให้ปฏิทิน "วาดใหม่ทั้งหมด" เพื่ออัปเดตตัวเลข Badge
             if (calendar) {
-                // เทคนิคการบังคับให้ FullCalendar วาด Day Cells ใหม่ทั้งหมด
-                // โดยการล้าง Element เก่าใน Cache ของปฏิทิน
-                const allDayCells = document.querySelectorAll('.fc-daygrid-day-frame');
-                allDayCells.forEach(cell => {
-                    const badge = cell.querySelector('.event-count-container');
-                    if (badge) badge.remove();
-                });
-
-                // สั่งให้ปฏิทินประมวลผลการวาดใหม่ (Internal Refresh)
-                calendar.render(); 
+                // เทคนิคการบังคับ Refresh หน้าปัจจุบันโดยไม่ต้องเปลี่ยนเดือน
+                const currentViewDate = calendar.getDate(); 
+                calendar.gotoDate(currentViewDate); 
+                
+                // หมายเหตุ: gotoDate จะสั่งให้ปฏิทินรัน dayCellDidMount ใหม่
+                // ซึ่งจะไปเรียก renderBadge ให้วาดตัวเลขที่ถูกต้องตาม Filter ปัจจุบันค่ะ
             }
 
-            // 3. จัดการสถานะปุ่ม "ทั้งหมด"
-            const allFilters = document.querySelectorAll('.dept-filter');
-            const checkedFilters = document.querySelectorAll('.dept-filter:checked');
+            // 3. จัดการสถานะปุ่ม "ทั้งหมด" (UI Logic)
+            const allFilters = Array.from(document.querySelectorAll('.dept-filter'));
+            const checkedFilters = allFilters.filter(f => f.checked);
             const filterAll = document.getElementById('filter-all');
             
             if (checkedFilters.length === allFilters.length) {
@@ -185,7 +181,8 @@
                 filterAll.checked = false;
                 filterAll.indeterminate = false;
             } else {
-                filterAll.indeterminate = true;
+                filterAll.checked = false;
+                filterAll.indeterminate = true; // แสดงขีดลบกลางช่อง (เลือกบางส่วน)
             }
         }
 
@@ -199,9 +196,9 @@
             });
         }
 
-        // ปรับปรุงฟังก์ชันวาด Badge ให้รัดกุมขึ้น
+        // ฟังก์ชันวาด Badge (ตัวเลข) ให้คงเดิมแต่เน้นการล้างค่าก่อนวาด
         function renderBadge(date, cellEl) {
-            // ล้าง Badge เก่า (ถ้ามี) ออกก่อนเพื่อป้องกันเลขซ้อน
+            // ล้าง Badge เก่าที่อาจค้างอยู่ใน Cell ออกให้หมดก่อน
             const oldBadge = cellEl.querySelector('.event-count-container');
             if (oldBadge) oldBadge.remove();
 
@@ -209,14 +206,14 @@
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
             
-            // กรองข้อมูลตาม Filter ปัจจุบัน
+            // กรองข้อมูลกิจกรรมตามที่ผู้ใช้ติ๊กเลือกไว้
             const filtered = filterData(allEventsRaw);
             const events = filtered.filter(e => e.start.split('T')[0] === dateStr);
 
+            // ถ้ามีกิจกรรมเหลืออยู่หลังกรอง ให้วาดตัวเลขใหม่ลงไป
             if (events.length > 0) {
                 const container = document.createElement('div');
                 container.className = 'event-count-container';
-                // วาดตัวเลขใหม่ตามจำนวนกิจกรรมที่ผ่านการกรองแล้ว
                 container.innerHTML = `<div class="event-count-badge">${events.length}</div>`;
                 cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
             }
