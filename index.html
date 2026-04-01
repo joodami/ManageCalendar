@@ -105,13 +105,12 @@
         </div>
     </div>
 
-    <script>
+   <script>
         let calendar;
         let allEventsRaw = [];
         const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // ดึงข้อมูลทันทีตั้งแต่โหลดหน้า
             await fetchData();
             
             calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -120,6 +119,14 @@
                 height: 'auto',
                 buttonText: { today: 'วันนี้' },
                 headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+                
+                // --- แก้ไข: ใช้แหล่งข้อมูลแบบฟังก์ชันเพื่อให้ตัวเลข Badge อัปเดตตาม Filter ---
+                events: function(info, successCallback, failureCallback) {
+                    const filtered = filterData(allEventsRaw);
+                    successCallback(filtered);
+                },
+                
+                // --- แก้ไข: ฟังก์ชันวาดตัวเลขบนปฏิทิน ---
                 dayCellDidMount: (info) => renderBadge(info.date, info.el),
                 dateClick: (info) => showDailyEvents(info.dateStr)
             });
@@ -144,7 +151,11 @@
             document.getElementById('btnList').className = !isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
             
             if (isCal) {
-                setTimeout(() => { calendar.updateSize(); calendar.render(); }, 10);
+                // --- แก้ไข: เมื่อสลับมาดูปฏิทิน ให้วาดใหม่และอัปเดตขนาดทันที ---
+                setTimeout(() => { 
+                    calendar.updateSize(); 
+                    calendar.refetchEvents(); // บังคับวาด Badge ใหม่
+                }, 10);
             } else {
                 updateListView();
             }
@@ -155,22 +166,17 @@
             handleFilterChange();
         }
 
-      function handleFilterChange() {
+        function handleFilterChange() {
             // 1. อัปเดตรายการในหน้า List View
             updateListView();
             
-            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที (วิธีที่ได้ผลที่สุด)
+            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที (หัวใจสำคัญ)
             if (calendar) {
-                // ล้าง Badge เก่าด้วย Manual เพื่อความชัวร์
+                // ล้าง Badge เก่าบนหน้าจอทิ้งก่อนเพื่อความสะอาด
                 document.querySelectorAll('.event-count-container').forEach(el => el.remove());
-
-                // บังคับให้ FullCalendar ประมวลผลเหตุการณ์ใหม่
-                // วิธีนี้จะทำให้มันวิ่งไปเรียก dayCellDidMount ของทุกช่องใหม่อีกครั้ง
-                calendar.render(); 
                 
-                // หากยังไม่อัปเดต ให้ใช้คำสั่ง "ตบ" หน้าจอเบาๆ ด้วยการเปลี่ยน View ไปมาเสี้ยววินาที
-                const currentView = calendar.view.type;
-                calendar.changeView(currentView); 
+                // สั่งให้ปฏิทิน "ดึงข้อมูลใหม่" ซึ่งจะไปกระตุ้นให้ renderBadge ทำงานใหม่โดยอัตโนมัติ
+                calendar.refetchEvents(); 
             }
 
             // 3. จัดการสถานะปุ่ม "ทั้งหมด"
@@ -201,26 +207,22 @@
         }
 
         function renderBadge(date, cellEl) {
-            // ป้องกันการวาดซ้อน
+            // ล้าง Badge เก่าออกเพื่อไม่ให้ตัวเลขซ้อนกัน
             const oldBadge = cellEl.querySelector('.event-count-container');
             if (oldBadge) oldBadge.remove();
 
-            // จัดการเรื่อง Timezone ให้ตรงกับ Google Calendar
             const d = new Date(date);
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
             
-            // กรองข้อมูลตาม Checkbox ปัจจุบัน
+            // กรองจำนวนกิจกรรมตาม Filter ล่าสุด
             const filtered = filterData(allEventsRaw);
-            const events = filtered.filter(e => {
-                // ตรวจสอบว่าวันที่เริ่มกิจกรรมตรงกับช่องวันที่ในปฏิทินหรือไม่
-                return e.start.split('T')[0] === dateStr;
-            });
+            const count = filtered.filter(e => e.start.split('T')[0] === dateStr).length;
 
-            if (events.length > 0) {
+            if (count > 0) {
                 const container = document.createElement('div');
                 container.className = 'event-count-container';
-                container.innerHTML = `<div class="event-count-badge">${events.length}</div>`;
+                container.innerHTML = `<div class="event-count-badge">${count}</div>`;
                 cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
             }
         }
