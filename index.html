@@ -155,9 +155,30 @@
             handleFilterChange();
         }
 
-        function handleFilterChange() {
-            calendar.render(); 
+       function handleFilterChange() {
+            // 1. อัปเดตตัวเลขในหน้าปฏิทินทันที
+            if (calendar) {
+                // บังคับให้ FullCalendar วาดหน้าจอใหม่ทั้งหมดรวมถึง Badge ตัวเลข
+                calendar.render(); 
+            }
+            
+            // 2. อัปเดตรายการในหน้า List View (ถ้าเปิดอยู่)
             updateListView();
+            
+            // 3. ตรวจสอบสถานะปุ่ม "ทั้งหมด" 
+            const allFilters = document.querySelectorAll('.dept-filter');
+            const checkedFilters = document.querySelectorAll('.dept-filter:checked');
+            const filterAll = document.getElementById('filter-all');
+            
+            if (checkedFilters.length === allFilters.length) {
+                filterAll.checked = true;
+                filterAll.indeterminate = false;
+            } else if (checkedFilters.length === 0) {
+                filterAll.checked = false;
+                filterAll.indeterminate = false;
+            } else {
+                filterAll.indeterminate = true; // แสดงสถานะว่าเลือกบางส่วน
+            }
         }
 
         function filterData(events) {
@@ -170,15 +191,19 @@
             });
         }
 
+       // เพิ่มเติม: ปรับฟังก์ชัน renderBadge ให้ทำงานได้แม่นยำขึ้น
         function renderBadge(date, cellEl) {
+            // ล้าง Badge เก่าออกก่อนทุกครั้งที่มีการ render ใหม่
+            const oldBadge = cellEl.querySelector('.event-count-container');
+            if (oldBadge) oldBadge.remove();
+
             const d = new Date(date);
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
+            
+            // กรองข้อมูลตามที่ติ๊กเลือกไว้ ณ ขณะนั้น
             const filtered = filterData(allEventsRaw);
             const events = filtered.filter(e => e.start.split('T')[0] === dateStr);
-            
-            const old = cellEl.querySelector('.event-count-container');
-            if (old) old.remove();
 
             if (events.length > 0) {
                 const container = document.createElement('div');
