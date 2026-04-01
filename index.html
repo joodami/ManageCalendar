@@ -346,30 +346,30 @@
         }
 
       // --- ฟังก์ชันส่วนกลางสำหรับวาดรายละเอียดและจัดการลิงก์ไฟล์แนบ ---
-        function renderEventDetail(ev, container) {
-            const div = document.createElement('div');
-            div.className = 'p-4 bg-white border border-slate-200 mb-3';
-            div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
-            
-            let description = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
-            
-            // แยก Link ทั่วไป กับ Link ที่เป็นไฟล์ (Google Drive/Docs/PDF)
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            let formattedDesc = description.replace(urlRegex, (url) => {
-                if (url.includes('drive.google.com') || url.includes('docs.google.com') || url.includes('.pdf')) {
-                    return `<a href="${url}" target="_blank" class="block mt-3 p-3 bg-emerald-50 text-emerald-700 text-center font-bold text-sm border-2 border-emerald-200 rounded-sm">📄 เปิดไฟล์แนบ / เอกสารอ้างอิง</a>`;
-                } else {
-                    return `<a href="${url}" target="_blank" class="inline-block text-blue-600 underline break-all">${url}</a>`;
-                }
-            });
-
-            div.innerHTML = `
-                <p class="text-[10px] font-black" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</p>
-                <h3 class="text-lg font-bold text-slate-900 leading-tight">${ev.title}</h3>
-                <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">${formattedDesc}</div>
-            `;
-            container.appendChild(div);
+       function renderEventDetail(ev, container) {
+    const div = document.createElement('div');
+    div.className = 'p-4 bg-white border border-slate-200 mb-3';
+    div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
+    
+    let description = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+    
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let formattedDesc = description.replace(urlRegex, (url) => {
+        // ดักจับลิงก์ Google Drive, PDF, หรือเอกสาร
+        if (url.includes('drive.google.com') || url.includes('docs.google.com') || url.includes('.pdf') || url.includes('forms.gle')) {
+            return `<a href="${url}" target="_blank" class="block mt-3 p-3 bg-emerald-50 text-emerald-700 text-center font-bold text-sm border-2 border-emerald-200 rounded-sm hover:bg-emerald-100 transition-all">📄 เปิดไฟล์แนบ / เอกสารอ้างอิง</a>`;
+        } else {
+            return `<a href="${url}" target="_blank" class="text-blue-600 underline break-all">${url}</a>`;
         }
+    });
+
+    div.innerHTML = `
+        <p class="text-[10px] font-black" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</p>
+        <h3 class="text-lg font-bold text-slate-900 leading-tight">${ev.title}</h3>
+        <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">${formattedDesc}</div>
+    `;
+    container.appendChild(div);
+}
 
         function closeModal() { document.getElementById('dayModal').style.display = 'none'; }
     </script>
