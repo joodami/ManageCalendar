@@ -9,7 +9,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
         :root {
-            --bg-light: #ffffff;
+            --official-blue: #1e3a8a; /* สีน้ำเงินกรมท่าทางการ */
             --sarabun: 'Sarabun', sans-serif;
             --slate-border: #cbd5e1;
         }
@@ -20,145 +20,152 @@
             -webkit-font-smoothing: antialiased; 
         }
 
-        /* ปรับสไตล์ปฏิทินให้ดูเหลี่ยมและเป็นทางการขึ้น */
+        /* ปฏิทินแบบทางการ */
         .fc { 
             background: #ffffff; 
             border-radius: 0; 
-            padding: 1.5rem; 
-            border: 1px solid var(--slate-border) !important; 
-            box-shadow: none;
+            padding: clamp(0.5rem, 2vw, 1.5rem); 
+            border: 1px solid var(--official-blue) !important; 
         }
-        .fc-toolbar-title { font-weight: 700 !important; color: #000; }
-        .fc-button { border-radius: 0 !important; text-transform: none !important; font-weight: 600 !important; }
+        .fc-toolbar-title { font-weight: 800 !important; color: var(--official-blue); }
         
-        .fc-daygrid-day-number { font-weight: 700; color: #334155; }
-        .fc-daygrid-day-frame { min-height: 100px !important; cursor: pointer; border: 0.5px solid #f1f5f9; }
-        .fc-day-today { background: #fffbeb !important; }
+        /* เปลี่ยนสีปุ่มเป็นน้ำเงิน */
+        .fc-button-primary { 
+            background-color: var(--official-blue) !important; 
+            border-color: var(--official-blue) !important; 
+            border-radius: 0 !important;
+            font-weight: 700 !important;
+        }
+        .fc-button-primary:hover { background-color: #172554 !important; }
 
-        /* Badge จำนวนงาน */
+        .fc-daygrid-day-number { font-weight: 700; color: #334155; font-size: 1.1rem; }
+        .fc-daygrid-day-frame { min-height: 90px !important; cursor: pointer; }
+        .fc-day-today { background: #eff6ff !important; border: 2px solid var(--official-blue) !important; }
+
+        /* Badge ตัวเลข (อัปเดต Real-time) */
         .event-count-container { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; pointer-events: none; }
         .event-count-badge {
-            background: #1e293b;
-            color: white; width: 35px; height: 35px; border-radius: 0; /* เปลี่ยนเป็นเหลี่ยม */
+            background: var(--official-blue);
+            color: white; width: 32px; height: 32px; border-radius: 0;
             display: flex; justify-content: center; align-items: center;
             font-size: 1.1rem; font-weight: 800;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* ฟิลเตอร์แบบเรียบ */
+        /* ฟิลเตอร์ */
         .filter-item { 
-            display: flex; align-items: center; background: white; padding: 6px 14px; 
+            display: flex; align-items: center; background: white; padding: 8px 16px; 
             border-radius: 0; border: 1px solid var(--slate-border); 
-            font-weight: 600; cursor: pointer; transition: 0.2s;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
         }
-        .filter-item:has(input:checked) { background: #f1f5f9; border-color: #000; }
+        .filter-item:has(input:checked) { border-color: var(--official-blue); background: #f0f4ff; }
 
-        /* การ์ดรายการแบบ "รวมวัน" (Official Look) */
-        .date-group-card { 
-            background: white; 
-            border: 1px solid var(--slate-border); 
-            margin-bottom: 1.5rem; 
-            border-radius: 0;
-        }
+        /* การ์ดรายการแบบรวมวัน */
+        .date-group-card { background: white; border: 1px solid var(--slate-border); margin-bottom: 1.5rem; border-radius: 0; }
         .date-header {
-            background: #f1f5f9;
-            padding: 10px 20px;
-            border-bottom: 2px solid #000;
+            background: var(--official-blue);
+            padding: 12px 20px;
+            border-bottom: 1px solid #000;
             font-weight: 800;
-            font-size: 1.2rem;
-            color: #000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 1.1rem;
+            color: white;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .event-item-row {
-            padding: 15px 20px;
-            border-bottom: 1px solid #edf2f7;
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
-        }
+        .event-item-row { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 15px; }
         .event-item-row:last-child { border-bottom: none; }
-        .dept-indicator {
-            width: 5px;
-            align-self: stretch;
-            flex-shrink: 0;
-        }
+        .dept-indicator { width: 6px; align-self: stretch; flex-shrink: 0; }
 
-        /* Modal */
-        #dayModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
-        .modal-content { background: white; border-radius: 0; max-width: 650px; width: 95%; max-height: 90vh; overflow: hidden; border: 2px solid #000; }
+        /* Modal - แก้ไขการเลื่อนบนมือถือ */
+        #dayModal { 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.7); z-index: 9999; 
+            align-items: center; justify-content: center;
+            padding: 10px;
+        }
+        .modal-content { 
+            background: white; border-radius: 0; max-width: 600px; width: 100%; 
+            max-height: 90vh; display: flex; flex-direction: column; border: 3px solid var(--official-blue); 
+        }
+        #dailyEventsContainer { 
+            overflow-y: auto; /* ทำให้เลื่อนได้ */
+            flex: 1; 
+            -webkit-overflow-scrolling: touch; 
+        }
 
         @media (max-width: 640px) {
-            .date-header { font-size: 1rem; padding: 8px 15px; }
-            .event-item-row { padding: 12px 15px; }
+            .fc-daygrid-day-frame { min-height: 70px !important; }
+            .date-header { flex-direction: column; align-items: flex-start; gap: 5px; }
         }
         .fc-daygrid-event-harness { display: none !important; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-3 md:p-10">
 
     <div id="dayModal" onclick="if(event.target==this) closeModal()">
         <div class="modal-content">
-            <div class="p-5 border-b bg-slate-900 text-white flex justify-between items-center">
+            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
                 <h2 id="modalDate" class="font-bold text-lg"></h2>
-                <button onclick="closeModal()" class="text-white text-2xl">✕</button>
+                <button onclick="closeModal()" class="text-white text-3xl font-light">&times;</button>
             </div>
-            <div id="dailyEventsContainer" class="p-6 overflow-y-auto space-y-4"></div>
-            <div class="p-4 border-t text-right">
-                <button onclick="closeModal()" class="px-6 py-2 bg-slate-800 text-white font-bold">ปิดหน้าต่าง</button>
+            <div id="dailyEventsContainer" class="p-5 space-y-4 bg-slate-50"></div>
+            <div class="p-4 border-t bg-white">
+                <button onclick="closeModal()" class="w-full py-3 bg-blue-900 text-white font-bold uppercase tracking-wider">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
     <div class="max-w-5xl mx-auto">
-        <header class="mb-10 border-b-2 border-slate-900 pb-6">
+        <header class="mb-8 border-b-4 border-blue-900 pb-6">
             <div class="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div class="flex items-center gap-4">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Emblem_of_Thailand.svg/100px-Emblem_of_Thailand.svg.png" class="w-16 h-16 object-contain">
-                    <div>
-                        <h1 class="text-2xl md:text-3xl font-black text-slate-900">ปฏิทินกิจกรรมรวม</h1>
-                        <p class="text-slate-600 font-bold">โรงเรียนพิมานพิทยาสรรค์</p>
+                    <div class="text-center md:text-left">
+                        <h1 class="text-2xl md:text-3xl font-black text-blue-900 uppercase">ระบบปฏิทินกิจกรรมโรงเรียน</h1>
+                        <p class="text-slate-600 font-bold">โรงเรียนพิมานพิทยาสรรค์ (Phiman Phitthayasan School)</p>
                     </div>
                 </div>
                 
-                <div class="flex border border-slate-900 overflow-hidden">
-                    <button onclick="switchView('calendar')" id="btnCal" class="px-6 py-2 font-bold text-sm bg-slate-900 text-white">แบบปฏิทิน</button>
-                    <button onclick="switchView('list')" id="btnList" class="px-6 py-2 font-bold text-sm bg-white text-slate-900 border-l border-slate-900">แบบรายการ</button>
+                <div class="flex border-2 border-blue-900">
+                    <button onclick="switchView('calendar')" id="btnCal" class="px-6 py-2 font-bold text-sm bg-blue-900 text-white transition-colors">แบบปฏิทิน</button>
+                    <button onclick="switchView('list')" id="btnList" class="px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900 transition-colors">แบบรายการ</button>
                 </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 mt-6">
+            <div class="flex flex-wrap gap-2 mt-6 justify-center md:justify-start">
                 <div class="filter-item text-slate-900">
                     <input type="checkbox" id="filter-all" onchange="toggleAll(this)">
-                    <label for="filter-all" class="ml-2 text-sm">ทั้งหมด</label>
+                    <label for="filter-all" class="ml-2 text-sm cursor-pointer">ทั้งหมด</label>
                 </div>
-                <div class="filter-item text-[#6366f1]">
+                <div class="filter-item text-[#6366f1] border-[#6366f1]">
                     <input type="checkbox" id="filter-director" class="dept-filter" onchange="handleFilterChange()">
-                    <label for="filter-director" class="ml-2 text-sm">งานผู้อำนวยการ</label>
+                    <label for="filter-director" class="ml-2 text-sm cursor-pointer">งานผู้อำนวยการ</label>
                 </div>
-                <div class="filter-item text-[#0ea5e9]">
+                <div class="filter-item text-[#0ea5e9] border-[#0ea5e9]">
                     <input type="checkbox" id="filter-school" class="dept-filter" onchange="handleFilterChange()">
-                    <label for="filter-school" class="ml-2 text-sm">กิจกรรมโรงเรียน</label>
+                    <label for="filter-school" class="ml-2 text-sm cursor-pointer">กิจกรรมโรงเรียน</label>
                 </div>
-                <div class="filter-item text-[#10b981]">
+                <div class="filter-item text-[#10b981] border-[#10b981]">
                     <input type="checkbox" id="filter-vehicle" class="dept-filter" onchange="handleFilterChange()">
-                    <label for="filter-vehicle" class="ml-2 text-sm">งานยานพาหนะ</label>
+                    <label for="filter-vehicle" class="ml-2 text-sm cursor-pointer">งานยานพาหนะ</label>
                 </div>
             </div>
         </header>
 
-        <div id="instruction" class="text-center p-12 bg-white border border-slate-300 text-slate-400 font-bold mb-8">
-            👉 กรุณาเลือกหมวดหมู่เพื่อแสดงข้อมูล
+        <div id="instruction" class="text-center p-12 bg-white border-2 border-dashed border-slate-300 text-slate-400 font-bold mb-8">
+            👉 กรุณาเลือกหมวดหมู่เพื่อตรวจสอบกิจกรรม
         </div>
 
         <div class="relative">
             <div id="loading" class="hidden absolute inset-0 bg-white/80 z-20 flex justify-center items-center">
-                <div class="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                <div class="w-12 h-12 border-4 border-slate-200 border-t-blue-900 rounded-full animate-spin"></div>
             </div>
             
             <div id="calendarView"><div id='calendar'></div></div>
             
             <div id="listView" class="hidden">
+                <h3 class="text-xl font-bold text-blue-900 mb-6 flex items-center gap-2">
+                    <span class="w-2 h-8 bg-blue-900"></span> รายการกิจกรรมประจำเดือนนี้
+                </h3>
                 <div id="listContainer"></div>
             </div>
         </div>
@@ -174,7 +181,9 @@
                 initialView: 'dayGridMonth',
                 locale: 'th',
                 height: 'auto',
-                headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
+                // เปลี่ยนข้อความ Today เป็น วันนี้
+                buttonText: { today: 'วันนี้' },
+                headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
                 dayCellDidMount: (info) => renderBadge(info.date, info.el),
                 dateClick: (info) => showDailyEvents(info.dateStr)
             });
@@ -186,8 +195,8 @@
             document.getElementById('calendarView').style.display = isCal ? 'block' : 'none';
             document.getElementById('listView').style.display = isCal ? 'none' : 'block';
             
-            document.getElementById('btnCal').className = isCal ? 'px-6 py-2 font-bold text-sm bg-slate-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-slate-900 border-l border-slate-900';
-            document.getElementById('btnList').className = !isCal ? 'px-6 py-2 font-bold text-sm bg-slate-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-slate-900 border-l border-slate-900';
+            document.getElementById('btnCal').className = isCal ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900';
+            document.getElementById('btnList').className = !isCal ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900';
             
             if (!isCal) updateListView();
         }
@@ -206,10 +215,11 @@
                 try {
                     const res = await fetch(gasUrl);
                     allEventsRaw = await res.json();
-                } catch (e) { alert('โหลดข้อมูลไม่สำเร็จ'); }
+                } catch (e) { alert('ขออภัย! ไม่สามารถดึงข้อมูลได้'); }
                 document.getElementById('loading').classList.add('hidden');
             }
             
+            // --- หัวใจสำคัญ: บังคับให้อัปเดตตัวเลข Badge ทันทีที่คลิก Filter ---
             calendar.render(); 
             updateListView();
         }
@@ -228,7 +238,10 @@
             const d = new Date(date);
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
-            const events = filterData(allEventsRaw).filter(e => e.start.split('T')[0] === dateStr);
+            
+            // คำนวณจำนวนเฉพาะที่ Filter เลือกไว้
+            const filtered = filterData(allEventsRaw);
+            const events = filtered.filter(e => e.start.split('T')[0] === dateStr);
             
             const old = cellEl.querySelector('.event-count-container');
             if (old) old.remove();
@@ -241,20 +254,23 @@
             }
         }
 
-        // --- ฟังก์ชันใหม่: จัดกลุ่มข้อมูลตามวันที่ ---
         function updateListView() {
             const container = document.getElementById('listContainer');
-            const today = new Date();
-            today.setHours(0,0,0,0);
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
             
-            const events = filterData(allEventsRaw).filter(e => new Date(e.start) >= today);
+            // กรองเฉพาะเดือนปัจจุบัน (หรือเปลี่ยนตามความเหมาะสม)
+            const events = filterData(allEventsRaw).filter(e => {
+                const evDate = new Date(e.start);
+                return evDate.getMonth() === currentMonth && evDate.getFullYear() === currentYear;
+            });
             
             if (events.length === 0) {
-                container.innerHTML = '<div class="text-center py-20 text-slate-400 border border-dashed border-slate-300">ไม่พบกิจกรรมที่จะเกิดขึ้นในวันที่เลือก</div>';
+                container.innerHTML = '<div class="text-center py-20 text-slate-400 border-2 border-dotted border-slate-200 font-bold">ไม่มีกิจกรรมในเดือนนี้สำหรับหมวดที่เลือก</div>';
                 return;
             }
 
-            // จัดกลุ่มตามวันที่
             const groups = {};
             events.forEach(ev => {
                 const dateKey = ev.start.split('T')[0];
@@ -263,24 +279,22 @@
             });
 
             container.innerHTML = '';
-            // แสดงผลการ์ดแยกตามวัน
             Object.keys(groups).sort().forEach(dateStr => {
                 const dateEvents = groups[dateStr];
                 const dateThai = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' });
                 
                 const card = document.createElement('div');
-                card.className = 'date-group-card';
+                card.className = 'date-group-card shadow-sm';
                 
                 let rowsHtml = '';
                 dateEvents.forEach(ev => {
                     rowsHtml += `
-                        <div class="event-item-row">
+                        <div class="event-item-row hover:bg-slate-50">
                             <div class="dept-indicator" style="background-color:${ev.backgroundColor}"></div>
                             <div class="flex-1">
-                                <div class="text-[10px] font-bold uppercase mb-1" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
-                                <div class="text-lg font-bold text-slate-900">${ev.title}</div>
-                                <div class="text-sm text-slate-500 mt-1 line-clamp-1">${ev.extendedProps.description || '-'}</div>
-                                <button onclick="showDailyEvents('${dateStr}')" class="mt-2 text-xs font-bold text-slate-400 hover:text-slate-900 underline">ดูรายละเอียด</button>
+                                <div class="text-[10px] font-black uppercase mb-1" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
+                                <div class="text-lg font-bold text-slate-900 leading-tight">${ev.title}</div>
+                                <button onclick="showDailyEvents('${dateStr}')" class="mt-2 text-xs font-bold text-blue-700 underline">รายละเอียดฉบับเต็ม</button>
                             </div>
                         </div>
                     `;
@@ -288,12 +302,10 @@
 
                 card.innerHTML = `
                     <div class="date-header">
-                        <span>${dateThai}</span>
-                        <span class="text-sm bg-slate-900 text-white px-3 py-1 font-normal">${dateEvents.length} รายการ</span>
+                        <span><i class="mr-2">📅</i> ${dateThai}</span>
+                        <span class="text-xs font-bold bg-white text-blue-900 px-3 py-1">${dateEvents.length} กิจกรรม</span>
                     </div>
-                    <div class="bg-white">
-                        ${rowsHtml}
-                    </div>
+                    <div class="bg-white">${rowsHtml}</div>
                 `;
                 container.appendChild(card);
             });
@@ -307,14 +319,14 @@
             container.innerHTML = '';
             events.forEach(ev => {
                 const div = document.createElement('div');
-                div.className = 'p-5 border border-slate-200';
-                div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
+                div.className = 'p-5 bg-white border border-slate-200 shadow-sm';
+                div.style.borderLeft = `8px solid ${ev.backgroundColor}`;
                 
-                let desc = (ev.extendedProps.description || 'ไม่มีรายละเอียด').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="block mt-4 p-3 bg-slate-100 border border-slate-300 text-center font-bold text-sm hover:bg-slate-200">🔗 ดูเอกสารแนบ</a>');
+                let desc = (ev.extendedProps.description || 'ไม่มีข้อมูลเพิ่มเติม').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="block mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 text-center font-bold text-sm hover:bg-blue-100 transition-all">📎 เปิดเอกสาร/ลิงก์แนบ</a>');
                 
                 div.innerHTML = `
-                    <div class="text-xs font-bold mb-1" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
-                    <div class="text-xl font-bold text-slate-900 mb-2">${ev.title}</div>
+                    <p class="text-[10px] font-black mb-1" style="color:${ev.backgroundColor}">${ev.extendedProps.dept.toUpperCase()}</p>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">${ev.title}</h3>
                     <div class="text-slate-600 text-sm leading-relaxed whitespace-pre-line border-t pt-3 mt-3">${desc}</div>
                 `;
                 container.appendChild(div);
