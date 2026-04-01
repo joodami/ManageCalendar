@@ -190,15 +190,34 @@
             calendar.render();
         });
 
-        function switchView(mode) {
+       function switchView(mode) {
             const isCal = mode === 'calendar';
-            document.getElementById('calendarView').style.display = isCal ? 'block' : 'none';
-            document.getElementById('listView').style.display = isCal ? 'none' : 'block';
+            const calElement = document.getElementById('calendarView');
+            const listElement = document.getElementById('listView');
             
-            document.getElementById('btnCal').className = isCal ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900';
-            document.getElementById('btnList').className = !isCal ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white' : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900';
+            if (isCal) {
+                calElement.style.display = 'block';
+                listElement.style.display = 'none';
+                
+                // --- จุดแก้ไขสำคัญ: สั่งให้ปฏิทินคำนวณขนาดและวาดใหม่ทันที ---
+                if (calendar) {
+                    calendar.updateSize(); // คำนวณขนาดหน้าจอใหม่
+                    calendar.render();     // วาด Badge และตารางใหม่
+                }
+            } else {
+                calElement.style.display = 'none';
+                listElement.style.display = 'block';
+                updateListView();
+            }
             
-            if (!isCal) updateListView();
+            // ปรับแต่งสีปุ่มให้สลับกัน
+            document.getElementById('btnCal').className = isCal 
+                ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white transition-colors' 
+                : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900 transition-colors';
+                
+            document.getElementById('btnList').className = !isCal 
+                ? 'px-6 py-2 font-bold text-sm bg-blue-900 text-white transition-colors' 
+                : 'px-6 py-2 font-bold text-sm bg-white text-blue-900 border-l-2 border-blue-900 transition-colors';
         }
 
         function toggleAll(source) {
