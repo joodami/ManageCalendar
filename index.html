@@ -142,64 +142,75 @@
 
     document.addEventListener('DOMContentLoaded', async function() {
         const calendarEl = document.getElementById('calendar');
-        
-        // 1. โหลดข้อมูลก่อนเริ่ม Render ปฏิทิน เพื่อให้มีข้อมูลพร้อมใช้ทันที
+        if (!calendarEl) {
+            alert("ไม่พบ Element ที่ชื่อ 'calendar' ในหน้า HTML");
+            return;
+        }
+
+        // 1. ลองดึงข้อมูลก่อน
         await fetchData(); 
 
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'th',
-            height: 'auto',
-            buttonText: { today: 'วันนี้' },
-            headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-            eventDisplay: 'none', 
-            events: function(info, successCallback) {
-                // ส่งข้อมูลที่ผ่านการ Filter แล้วให้ FullCalendar
-                successCallback(filterData(allEventsRaw));
-            },
-            // ฟังก์ชันนี้ทำงานทุกครั้งที่เปลี่ยนเดือน หรือเรียก refetchEvents
-            datesSet: function() {
-                // ใช้ setTimeout เล็กน้อยเพื่อให้ตาราง HTML วาดเสร็จก่อน แล้วค่อยเติม Badge
-                setTimeout(updateAllBadges, 50);
-            },
-            dateClick: (info) => showDailyEvents(info.dateStr)
-        });
-        
-        calendar.render();
-        
-        // อัปเดต List View ครั้งแรก (ถ้าผู้ใช้อยู่หน้า List)
-        updateListView();
+        // 2. สร้างปฏิทิน (แม้ไม่มีข้อมูลก็ต้องขึ้นตารางเปล่าๆ)
+        try {
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'th',
+                height: 'auto',
+                buttonText: { today: 'วันนี้' },
+                headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+                eventDisplay: 'none', 
+                events: function(info, successCallback) {
+                    successCallback(filterData(allEventsRaw));
+                },
+                datesSet: function() {
+                    setTimeout(updateAllBadges, 150);
+                },
+                dateClick: (info) => showDailyEvents(info.dateStr)
+            });
+            
+            calendar.render();
+            console.log("Calendar rendered successfully");
+            updateListView();
+        } catch (err) {
+            console.error("Calendar Render Error:", err);
+            alert("เกิดข้อผิดพลาดในการสร้างปฏิทิน: " + err.message);
+        }
     });
 
     async function fetchData() {
         const loadingEl = document.getElementById('loading');
         if (loadingEl) loadingEl.classList.remove('hidden');
+        
         try {
             const res = await fetch(gasUrl);
-            allEventsRaw = await res.json();
-            console.log("Data loaded:", allEventsRaw.length, "events");
+            if (!res.ok) throw new Error("Network response was not ok");
+            
+            const data = await res.json();
+            allEventsRaw = data;
+            
+            if (allEventsRaw.length === 0) {
+                console.warn("No events found in the calendars.");
+            } else {
+                console.log("Fetch Success! Count:", allEventsRaw.length);
+            }
         } catch (e) { 
-            console.error('Load Error:', e);
-            alert('ไม่สามารถโหลดข้อมูลกิจกรรมได้ กรุณารีเฟรชหน้าจอ');
+            console.error('Fetch Error:', e);
+            // หากขึ้น alert นี้ แสดงว่า URL ของ GAS ผิด หรือไม่ได้ตั้งค่าเป็น Anyone
+            alert('โหลดข้อมูลไม่สำเร็จ! ตรวจสอบการ Deploy ใน Apps Script: ' + e.message);
+        } finally {
+            if (loadingEl) loadingEl.classList.add('hidden');
         }
-        if (loadingEl) loadingEl.classList.add('hidden');
     }
 
     function updateAllBadges() {
-        // 1. ล้าง Badge เก่าออกก่อน
         document.querySelectorAll('.event-count-container').forEach(el => el.remove());
-
-        // 2. ค้นหาช่องวันที่ที่แสดงอยู่ปัจจุบัน
-        const dayCells = document.querySelectorAll('.fc-daygrid-day');
         const filteredEvents = filterData(allEventsRaw);
+        const dayCells = document.querySelectorAll('.fc-daygrid-day');
 
         dayCells.forEach(cell => {
             const dateStr = cell.getAttribute('data-date');
             if (!dateStr) return;
-
-            // นับจำนวนกิจกรรมในวันนั้น
             const count = filteredEvents.filter(ev => ev.start.split('T')[0] === dateStr).length;
-
             if (count > 0) {
                 const frame = cell.querySelector('.fc-daygrid-day-frame');
                 if (frame) {
@@ -214,12 +225,21 @@
         });
     }
 
+    function filterData(events) {
+        if (!Array.isArray(events)) return [];
+        const showDir = document.getElementById('filter-director')?.checked;
+        const showSch = document.getElementById('filter-school')?.checked;
+        const showVeh = document.getElementById('filter-vehicle')?.checked;
+        return events.filter(ev => {
+            const gid = ev.extendedProps?.groupId;
+            return (gid === 'director' && showDir) || (gid === 'school' && showSch) || (gid === 'vehicle' && showVeh);
+        });
+    }
+
     function handleFilterChange() {
+        if (calendar) calendar.refetchEvents();
         updateListView();
         updateAllBadges();
-        if (calendar) {
-            calendar.refetchEvents(); // บังคับให้ FullCalendar เรียกฟังก์ชัน events ใหม่
-        }
         updateAllCheckboxStatus();
     }
 
@@ -227,16 +247,9 @@
         const allFilters = Array.from(document.querySelectorAll('.dept-filter'));
         const checkedFilters = allFilters.filter(f => f.checked);
         const filterAll = document.getElementById('filter-all');
-        
-        if (checkedFilters.length === allFilters.length) {
-            filterAll.checked = true;
-            filterAll.indeterminate = false;
-        } else if (checkedFilters.length === 0) {
-            filterAll.checked = false;
-            filterAll.indeterminate = false;
-        } else {
-            filterAll.checked = false;
-            filterAll.indeterminate = true; 
+        if (filterAll) {
+            filterAll.checked = checkedFilters.length === allFilters.length;
+            filterAll.indeterminate = checkedFilters.length > 0 && checkedFilters.length < allFilters.length;
         }
     }
 
@@ -245,25 +258,11 @@
         handleFilterChange();
     }
 
-    function filterData(events) {
-        const showDir = document.getElementById('filter-director').checked;
-        const showSch = document.getElementById('filter-school').checked;
-        const showVeh = document.getElementById('filter-vehicle').checked;
-        return events.filter(ev => {
-            const gid = ev.extendedProps?.groupId;
-            return (gid === 'director' && showDir) || (gid === 'school' && showSch) || (gid === 'vehicle' && showVeh);
-        });
-    }
-
     function switchView(mode) {
         const isCal = mode === 'calendar';
         document.getElementById('calendarView').style.display = isCal ? 'block' : 'none';
         document.getElementById('listView').style.display = isCal ? 'none' : 'block';
-        
-        document.getElementById('btnCal').className = isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
-        document.getElementById('btnList').className = !isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
-        
-        if (isCal) {
+        if (isCal && calendar) {
             calendar.updateSize();
             updateAllBadges();
         } else {
@@ -273,15 +272,14 @@
 
     function updateListView() {
         const container = document.getElementById('listContainer');
+        if (!container) return;
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        
         const events = filterData(allEventsRaw).filter(e => {
             const evDate = new Date(e.start);
-            return evDate.getMonth() === currentMonth && evDate.getFullYear() === currentYear;
+            return evDate.getMonth() === now.getMonth() && evDate.getFullYear() === now.getFullYear();
         });
         
+        container.innerHTML = '';
         if (events.length === 0) {
             container.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold border border-slate-200">ไม่มีกิจกรรมในเดือนนี้</div>';
             return;
@@ -294,14 +292,10 @@
             groups[dateKey].push(ev);
         });
 
-        container.innerHTML = '';
         Object.keys(groups).sort().forEach(dateStr => {
             const dateEvents = groups[dateStr];
             const dateThai = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-            const card = document.createElement('div');
-            card.className = 'date-group-card';
             let rowsHtml = '';
-            
             dateEvents.forEach(ev => {
                 const eventData = JSON.stringify({title: ev.title, date: dateStr}).replace(/"/g, '&quot;');
                 rowsHtml += `
@@ -310,10 +304,12 @@
                         <div class="flex-1">
                             <div class="text-[9px] font-black uppercase" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
                             <div class="text-base font-bold text-slate-900">${ev.title}</div>
-                            <button onclick="showSingleEvent('${eventData}')" class="text-[11px] font-bold text-blue-700 underline">ดูรายละเอียดเฉพาะงานนี้</button>
+                            <button onclick="showSingleEvent('${eventData}')" class="text-[11px] font-bold text-blue-700 underline">รายละเอียด</button>
                         </div>
                     </div>`;
             });
+            const card = document.createElement('div');
+            card.className = 'date-group-card';
             card.innerHTML = `<div class="date-header"><span>${dateThai}</span><span class="text-[10px] bg-white text-blue-900 px-2 py-0.5">${dateEvents.length} งาน</span></div>${rowsHtml}`;
             container.appendChild(card);
         });
@@ -337,7 +333,7 @@
         document.getElementById('modalDate').innerText = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
         container.innerHTML = '';
         if (events.length === 0) {
-            container.innerHTML = '<div class="text-center py-10 text-slate-400">ไม่มีกิจกรรมในวันนี้</div>';
+            container.innerHTML = '<p class="text-center py-5 text-slate-500">ไม่มีกิจกรรมในวันนี้</p>';
         } else {
             events.forEach(ev => renderEventDetail(ev, container));
         }
@@ -348,20 +344,14 @@
         const div = document.createElement('div');
         div.className = 'p-4 bg-white border border-slate-200 mb-3';
         div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
-        
         let description = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         let formattedDesc = description.replace(urlRegex, (url) => {
-            if (url.includes('drive.google.com') || url.includes('docs.google.com') || url.includes('.pdf') || url.includes('forms.gle')) {
-                return `<a href="${url}" target="_blank" class="block mt-3 p-3 bg-emerald-50 text-emerald-700 text-center font-bold text-sm border-2 border-emerald-200 rounded-sm hover:bg-emerald-100 transition-all">📄 เปิดไฟล์แนบ / เอกสารอ้างอิง</a>`;
-            } else {
-                return `<a href="${url}" target="_blank" class="text-blue-600 underline break-all">${url}</a>`;
-            }
+            return `<a href="${url}" target="_blank" class="text-blue-600 underline break-all">${url}</a>`;
         });
-
         div.innerHTML = `
             <p class="text-[10px] font-black" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</p>
-            <h3 class="text-lg font-bold text-slate-900 leading-tight">${ev.title}</h3>
+            <h3 class="text-lg font-bold text-slate-900">${ev.title}</h3>
             <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">${formattedDesc}</div>
         `;
         container.appendChild(div);
