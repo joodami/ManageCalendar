@@ -155,17 +155,25 @@
             handleFilterChange();
         }
 
-       function handleFilterChange() {
-            // 1. อัปเดตตัวเลขในหน้าปฏิทินทันที
-            if (calendar) {
-                // บังคับให้ FullCalendar วาดหน้าจอใหม่ทั้งหมดรวมถึง Badge ตัวเลข
-                calendar.render(); 
-            }
-            
-            // 2. อัปเดตรายการในหน้า List View (ถ้าเปิดอยู่)
+      function handleFilterChange() {
+            // 1. อัปเดตรายการในหน้า List View (ถ้าเปิดอยู่จะเห็นการเปลี่ยนแปลงทันที)
             updateListView();
             
-            // 3. ตรวจสอบสถานะปุ่ม "ทั้งหมด" 
+            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที
+            if (calendar) {
+                // เทคนิคการบังคับให้ FullCalendar วาด Day Cells ใหม่ทั้งหมด
+                // โดยการล้าง Element เก่าใน Cache ของปฏิทิน
+                const allDayCells = document.querySelectorAll('.fc-daygrid-day-frame');
+                allDayCells.forEach(cell => {
+                    const badge = cell.querySelector('.event-count-container');
+                    if (badge) badge.remove();
+                });
+
+                // สั่งให้ปฏิทินประมวลผลการวาดใหม่ (Internal Refresh)
+                calendar.render(); 
+            }
+
+            // 3. จัดการสถานะปุ่ม "ทั้งหมด"
             const allFilters = document.querySelectorAll('.dept-filter');
             const checkedFilters = document.querySelectorAll('.dept-filter:checked');
             const filterAll = document.getElementById('filter-all');
@@ -177,7 +185,7 @@
                 filterAll.checked = false;
                 filterAll.indeterminate = false;
             } else {
-                filterAll.indeterminate = true; // แสดงสถานะว่าเลือกบางส่วน
+                filterAll.indeterminate = true;
             }
         }
 
@@ -191,9 +199,9 @@
             });
         }
 
-       // เพิ่มเติม: ปรับฟังก์ชัน renderBadge ให้ทำงานได้แม่นยำขึ้น
+        // ปรับปรุงฟังก์ชันวาด Badge ให้รัดกุมขึ้น
         function renderBadge(date, cellEl) {
-            // ล้าง Badge เก่าออกก่อนทุกครั้งที่มีการ render ใหม่
+            // ล้าง Badge เก่า (ถ้ามี) ออกก่อนเพื่อป้องกันเลขซ้อน
             const oldBadge = cellEl.querySelector('.event-count-container');
             if (oldBadge) oldBadge.remove();
 
@@ -201,13 +209,14 @@
             d.setHours(d.getHours() + 7);
             const dateStr = d.toISOString().split('T')[0];
             
-            // กรองข้อมูลตามที่ติ๊กเลือกไว้ ณ ขณะนั้น
+            // กรองข้อมูลตาม Filter ปัจจุบัน
             const filtered = filterData(allEventsRaw);
             const events = filtered.filter(e => e.start.split('T')[0] === dateStr);
 
             if (events.length > 0) {
                 const container = document.createElement('div');
                 container.className = 'event-count-container';
+                // วาดตัวเลขใหม่ตามจำนวนกิจกรรมที่ผ่านการกรองแล้ว
                 container.innerHTML = `<div class="event-count-badge">${events.length}</div>`;
                 cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
             }
