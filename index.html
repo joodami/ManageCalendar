@@ -49,6 +49,36 @@
             .fc-toolbar-title { font-size: 1rem !important; }
         }
         .fc-daygrid-event-harness { display: none !important; }
+
+        /* สไตล์เพิ่มเติมสำหรับปุ่มลิงก์และไฟล์แนบใน Modal */
+        .modal-content a {
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .modal-content a:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        /* ปรับปรุงการแสดงผลข้อความใน Modal ให้รองรับการเว้นบรรทัด */
+        .whitespace-pre-line {
+            white-space: pre-line;
+            word-break: break-word;
+            line-height: 1.6;
+        }
+
+        /* ปรับแต่ง Scrollbar สำหรับ Modal บน PC ให้ดูเนียนตา */
+        #dailyEventsContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+        #dailyEventsContainer::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #dailyEventsContainer::-webkit-scrollbar-thumb {
+            background: var(--official-blue);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body class="p-3 md:p-8">
