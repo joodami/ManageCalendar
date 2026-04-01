@@ -140,9 +140,7 @@
         let allEventsRaw = [];
         const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            await fetchData();
-            
+       document.addEventListener('DOMContentLoaded', async function() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
@@ -150,27 +148,41 @@
                 height: 'auto',
                 buttonText: { today: 'วันนี้' },
                 headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-                // ซ่อน Event แถบสีพื้นฐานเพื่อเน้นแค่ตัวเลข
                 eventDisplay: 'none', 
                 events: function(info, successCallback) {
                     successCallback(filterData(allEventsRaw));
                 },
-                // สั่งให้วาดตัวเลขทุกครั้งที่ปฏิทินขยับหรือโหลด
+                // ฟังก์ชันนี้จะทำงานทุกครั้งที่มีการเปลี่ยนเดือน
                 datesSet: function() {
-                    setTimeout(updateAllBadges, 50);
+                    // ใช้การเช็คว่าถ้ามีข้อมูลแล้วให้วาดทันที
+                    if (allEventsRaw.length > 0) {
+                        updateAllBadges();
+                    }
                 },
                 dateClick: (info) => showDailyEvents(info.dateStr)
             });
             calendar.render();
+
+            // โหลดข้อมูลหลังจาก Render ปฏิทินตัวเปล่ารอไว้ก่อน
+            await fetchData(); 
+            
+            // เมื่อโหลดข้อมูลเสร็จ ให้บังคับอัปเดตปฏิทินและวาด Badge ทันที
+            calendar.refetchEvents();
+            updateAllBadges();
         });
 
         async function fetchData() {
-            document.getElementById('loading').classList.remove('hidden');
+            const loadingEl = document.getElementById('loading');
+            loadingEl.classList.remove('hidden');
             try {
                 const res = await fetch(gasUrl);
                 allEventsRaw = await res.json();
-            } catch (e) { console.error('Load Error'); }
-            document.getElementById('loading').classList.add('hidden');
+                console.log("Data loaded:", allEventsRaw.length, "events");
+            } catch (e) { 
+                console.error('Load Error:', e);
+                alert('ไม่สามารถโหลดข้อมูลกิจกรรมได้ กรุณารีเฟรชหน้าจอ');
+            }
+            loadingEl.classList.add('hidden');
         }
 
         // --- ฟังก์ชันหัวใจหลัก: บังคับวาดตัวเลขใหม่ทั้งหมด ---
