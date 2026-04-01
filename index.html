@@ -105,7 +105,7 @@
         </div>
     </div>
 
-   <script>
+  <script>
         let calendar;
         let allEventsRaw = [];
         const gasUrl = 'https://script.google.com/macros/s/AKfycbxESHXBgm20xnXorOiDl-w3kFt6RZtU-iLUqBiJvmZKKgwyH6SraH5QrMDSj6dSuhRbpA/exec';
@@ -113,21 +113,22 @@
         document.addEventListener('DOMContentLoaded', async function() {
             await fetchData();
             
-            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'th',
                 height: 'auto',
                 buttonText: { today: 'วันนี้' },
                 headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-                
-                // --- แก้ไข: ใช้แหล่งข้อมูลแบบฟังก์ชันเพื่อให้ตัวเลข Badge อัปเดตตาม Filter ---
-                events: function(info, successCallback, failureCallback) {
-                    const filtered = filterData(allEventsRaw);
-                    successCallback(filtered);
+                // ซ่อน Event แถบสีพื้นฐานเพื่อเน้นแค่ตัวเลข
+                eventDisplay: 'none', 
+                events: function(info, successCallback) {
+                    successCallback(filterData(allEventsRaw));
                 },
-                
-                // --- แก้ไข: ฟังก์ชันวาดตัวเลขบนปฏิทิน ---
-                dayCellDidMount: (info) => renderBadge(info.date, info.el),
+                // สั่งให้วาดตัวเลขทุกครั้งที่ปฏิทินขยับหรือโหลด
+                datesSet: function() {
+                    setTimeout(updateAllBadges, 50);
+                },
                 dateClick: (info) => showDailyEvents(info.dateStr)
             });
             calendar.render();
@@ -142,44 +143,57 @@
             document.getElementById('loading').classList.add('hidden');
         }
 
-        function switchView(mode) {
-            const isCal = mode === 'calendar';
-            document.getElementById('calendarView').style.display = isCal ? 'block' : 'none';
-            document.getElementById('listView').style.display = isCal ? 'none' : 'block';
-            
-            document.getElementById('btnCal').className = isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
-            document.getElementById('btnList').className = !isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
-            
-            if (isCal) {
-                // --- แก้ไข: เมื่อสลับมาดูปฏิทิน ให้วาดใหม่และอัปเดตขนาดทันที ---
-                setTimeout(() => { 
-                    calendar.updateSize(); 
-                    calendar.refetchEvents(); // บังคับวาด Badge ใหม่
-                }, 10);
-            } else {
-                updateListView();
-            }
-        }
+        // --- ฟังก์ชันหัวใจหลัก: บังคับวาดตัวเลขใหม่ทั้งหมด ---
+        function updateAllBadges() {
+            // 1. ล้าง Badge เก่าออกให้หมดจด
+            document.querySelectorAll('.event-count-container').forEach(el => el.remove());
 
-        function toggleAll(source) {
-            document.querySelectorAll('.dept-filter').forEach(f => f.checked = source.checked);
-            handleFilterChange();
+            // 2. ค้นหาทุกช่องวันที่ (Cell) ที่ปรากฏอยู่บนหน้าจอ
+            const dayCells = document.querySelectorAll('.fc-daygrid-day');
+            const filteredEvents = filterData(allEventsRaw);
+
+            dayCells.forEach(cell => {
+                const dateStr = cell.getAttribute('data-date');
+                if (!dateStr) return;
+
+                // นับจำนวนกิจกรรมในวันที่นั้นๆ
+                const count = filteredEvents.filter(ev => ev.start.split('T')[0] === dateStr).length;
+
+                if (count > 0) {
+                    // สร้าง Badge ใหม่
+                    const container = document.createElement('div');
+                    container.className = 'event-count-container';
+                    // ป้องกันการคลิก Badge แล้วไปโดนอย่างอื่น
+                    container.style.pointerEvents = 'none'; 
+                    container.innerHTML = `<div class="event-count-badge">${count}</div>`;
+                    
+                    // แทรกเข้าไปในส่วน Frame ของช่องวันที่
+                    const frame = cell.querySelector('.fc-daygrid-day-frame');
+                    if (frame) {
+                        frame.style.position = 'relative'; // ประกันตำแหน่ง
+                        frame.appendChild(container);
+                    }
+                }
+            });
         }
 
         function handleFilterChange() {
-            // 1. อัปเดตรายการในหน้า List View
+            // 1. อัปเดต List View
             updateListView();
             
-            // 2. บังคับให้ปฏิทินวาด Badge ใหม่ทันที (หัวใจสำคัญ)
+            // 2. ดีดตัวเลขบนปฏิทินทันที
+            updateAllBadges();
+
+            // 3. แจ้ง FullCalendar ว่าข้อมูลเปลี่ยน (เผื่อกรณีมีการใช้ Event อื่นๆ)
             if (calendar) {
-                // ล้าง Badge เก่าบนหน้าจอทิ้งก่อนเพื่อความสะอาด
-                document.querySelectorAll('.event-count-container').forEach(el => el.remove());
-                
-                // สั่งให้ปฏิทิน "ดึงข้อมูลใหม่" ซึ่งจะไปกระตุ้นให้ renderBadge ทำงานใหม่โดยอัตโนมัติ
-                calendar.refetchEvents(); 
+                calendar.refetchEvents();
             }
 
-            // 3. จัดการสถานะปุ่ม "ทั้งหมด"
+            // 4. อัปเดตสถานะปุ่ม Checkbox
+            updateAllCheckboxStatus();
+        }
+
+        function updateAllCheckboxStatus() {
             const allFilters = Array.from(document.querySelectorAll('.dept-filter'));
             const checkedFilters = allFilters.filter(f => f.checked);
             const filterAll = document.getElementById('filter-all');
@@ -196,6 +210,11 @@
             }
         }
 
+        function toggleAll(source) {
+            document.querySelectorAll('.dept-filter').forEach(f => f.checked = source.checked);
+            handleFilterChange();
+        }
+
         function filterData(events) {
             const showDir = document.getElementById('filter-director').checked;
             const showSch = document.getElementById('filter-school').checked;
@@ -206,24 +225,19 @@
             });
         }
 
-        function renderBadge(date, cellEl) {
-            // ล้าง Badge เก่าออกเพื่อไม่ให้ตัวเลขซ้อนกัน
-            const oldBadge = cellEl.querySelector('.event-count-container');
-            if (oldBadge) oldBadge.remove();
-
-            const d = new Date(date);
-            d.setHours(d.getHours() + 7);
-            const dateStr = d.toISOString().split('T')[0];
+        function switchView(mode) {
+            const isCal = mode === 'calendar';
+            document.getElementById('calendarView').style.display = isCal ? 'block' : 'none';
+            document.getElementById('listView').style.display = isCal ? 'none' : 'block';
             
-            // กรองจำนวนกิจกรรมตาม Filter ล่าสุด
-            const filtered = filterData(allEventsRaw);
-            const count = filtered.filter(e => e.start.split('T')[0] === dateStr).length;
-
-            if (count > 0) {
-                const container = document.createElement('div');
-                container.className = 'event-count-container';
-                container.innerHTML = `<div class="event-count-badge">${count}</div>`;
-                cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
+            document.getElementById('btnCal').className = isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
+            document.getElementById('btnList').className = !isCal ? 'px-4 py-1.5 font-bold text-xs bg-blue-900 text-white' : 'px-4 py-1.5 font-bold text-xs bg-white text-blue-900 border-l-2 border-blue-900';
+            
+            if (isCal) {
+                calendar.updateSize();
+                updateAllBadges();
+            } else {
+                updateListView();
             }
         }
 
