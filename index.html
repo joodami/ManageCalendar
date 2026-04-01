@@ -8,72 +8,90 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #f8fafc; color: #1e293b; }
+        body { font-family: 'Prompt', sans-serif; background: #f1f5f9; color: #1e293b; }
         
-        /* ปรับแต่งปฏิทินให้ดูสะอาดตา ไม่รก */
+        /* ปรับแต่งตารางปฏิทินให้ดูโล่งที่สุด */
         .fc { background: white; border-radius: 1.5rem; padding: 1rem; border: none !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .fc-header-toolbar { margin-bottom: 1.5rem !important; }
-        .fc-toolbar-title { font-size: clamp(1rem, 4vw, 1.5rem) !important; font-weight: 600; }
+        .fc-toolbar-title { font-size: 1.2rem !important; font-weight: 600; }
         
-        /* จำกัดการแสดงผลในช่องปฏิทิน (ให้แสดงแค่จุดและชื่อสั้นๆ) */
-        .fc-daygrid-event { border: none !important; background: transparent !important; margin: 2px 0 !important; }
-        .fc-event-main { padding: 0 !important; }
-        .event-minimal { display: flex; align-items: center; gap: 5px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.03); }
-        .event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .event-label { font-size: 0.85rem; font-weight: 500; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* ปรับแต่งปุ่ม "+ more" ให้ดูสวย */
-        .fc-daygrid-more-link { font-size: 0.8rem !important; font-weight: 600; color: #6366f1 !important; padding: 2px 5px; }
-
-        /* Modal สำหรับแสดงรายการทั้งหมดประจำวัน */
-        #dayModal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); z-index: 9999; align-items: center; justify-content: center; padding: 1.5rem; backdrop-filter: blur(8px); }
-        .modal-content { background: white; border-radius: 2rem; max-width: 500px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        /* ซ่อนข้อความกิจกรรมทั้งหมดในหน้าเดือน */
+        .fc-daygrid-event-harness { display: none !important; } 
         
-        .event-card { border-left: 6px solid; background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 12px; }
-        .event-card-title { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
-        .event-card-dept { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .event-card-desc { font-size: 0.95rem; color: #475569; line-height: 1.5; }
+        /* ปรับแต่งช่องวันที่ */
+        .fc-daygrid-day-frame { cursor: pointer; transition: background 0.2s; min-height: 80px !important; }
+        .fc-daygrid-day-frame:hover { background: #f8fafc; }
+
+        /* ตัวแสดงจำนวนกิจกรรม (Badge) */
+        .event-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #6366f1;
+            color: white;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 4px;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+        }
+        .event-count-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 10px;
+        }
+
+        /* Modal: รายการกิจกรรมประจำวัน */
+        #dayModal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 9999; align-items: center; justify-content: center; padding: 1.5rem; backdrop-filter: blur(8px); }
+        .modal-content { background: white; border-radius: 2rem; max-width: 480px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .event-card { border-left: 6px solid; background: #f8fafc; padding: 16px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .event-card-title { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin: 4px 0; }
+        .event-card-dept { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 
         /* Filter Checkbox */
-        .filter-item { display: flex; align-items: center; background: white; padding: 10px 18px; border-radius: 9999px; border: 2px solid #e2e8f0; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .filter-item { display: flex; align-items: center; background: white; padding: 8px 16px; border-radius: 9999px; border: 2px solid #e2e8f0; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .filter-item input { width: 18px; height: 18px; cursor: pointer; }
 
         @media (max-width: 640px) {
-            .fc { padding: 0.5rem; border-radius: 1rem; }
-            .event-label { font-size: 0.75rem; }
-            .filter-item { padding: 6px 12px; font-size: 0.85rem; }
+            .fc-daygrid-day-number { font-size: 0.9rem !important; }
+            .event-count-badge { font-size: 0.65rem; padding: 1px 6px; }
+            .fc-daygrid-day-frame { min-height: 60px !important; }
         }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div id="dayModal">
-        <div class="modal-content animate-in slide-in-from-bottom duration-300">
-            <div class="p-6 border-b flex justify-between items-center">
+        <div class="modal-content animate-in zoom-in duration-300">
+            <div class="p-6 border-b flex justify-between items-center bg-white">
                 <div>
                     <h2 id="modalDate" class="text-2xl font-bold text-slate-900"></h2>
-                    <p class="text-sm text-indigo-600 font-semibold">กิจกรรมทั้งหมดในวันนี้</p>
+                    <p class="text-sm text-indigo-600 font-semibold uppercase tracking-wider">รายการกิจกรรมทั้งหมด</p>
                 </div>
-                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-full text-slate-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
             </div>
             <div id="dailyEventsContainer" class="p-6 overflow-y-auto space-y-4 bg-slate-50/50">
                 </div>
-            <div class="p-4 border-t text-center">
-                <button onclick="closeModal()" class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold active:scale-95 transition-transform">ปิดหน้าต่าง</button>
+            <div class="p-4 border-t bg-white">
+                <button onclick="closeModal()" class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold active:scale-95 transition-transform shadow-lg">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-4xl mx-auto">
         <header class="mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Emblem_of_Thailand.svg/100px-Emblem_of_Thailand.svg.png" 
                      alt="School Logo" class="w-14 h-14 object-contain">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-slate-900">ระบบปฏิทินกิจกรรมรวม</h1>
-                    <p class="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-widest">Phiman Phitthayasan School</p>
+                    <h1 class="text-2xl font-bold text-slate-900 leading-tight">ระบบปฏิทินกิจกรรม</h1>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Phiman Phitthayasan School</p>
                 </div>
             </div>
 
@@ -93,14 +111,14 @@
             </div>
         </header>
 
-        <div id="instruction" class="text-center py-4 px-6 bg-indigo-50 text-indigo-600 rounded-2xl mb-8 font-bold border border-indigo-100 animate-pulse">
-            👆 เลือกหมวดหมู่ด้านบนเพื่อดูรายการกิจกรรม
+        <div id="instruction" class="text-center py-4 px-6 bg-white rounded-2xl mb-8 font-bold text-indigo-500 border-2 border-dashed border-indigo-100 animate-pulse">
+            📍 กรุณาเลือกหมวดหมู่ปฏิทินด้านบน
         </div>
 
-        <div class="relative min-h-[500px]">
+        <div class="relative">
             <div id="loading" class="hidden absolute inset-0 bg-white/80 z-20 flex flex-col justify-center items-center rounded-3xl backdrop-blur-sm">
                 <div class="w-12 h-12 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
-                <p class="font-bold text-slate-600">กำลังดึงข้อมูลกิจกรรม...</p>
+                <p class="font-bold text-slate-600">กำลังอัปเดตข้อมูล...</p>
             </div>
             <div id='calendar'></div>
         </div>
@@ -120,36 +138,37 @@
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,listMonth'
+                    right: '' // เอาปุ่ม List ออกเพื่อให้ดู Minimal
                 },
-                buttonText: { today: 'วันนี้', month: 'เดือน', list: 'รายการ' },
+                buttonText: { today: 'วันนี้' },
                 
-                // จุดสำคัญ: จำกัดจำนวนกิจกรรมในแต่ละวัน
-                dayMaxEvents: 2, 
-                
-                events: function(fetchInfo, successCallback, failureCallback) {
-                    successCallback(filterData(allEventsRaw));
+                // จุดที่แก้ไข: ใช้ dayCellDidMount เพื่อสร้าง Badge ตัวเลข
+                dayCellDidMount: function(info) {
+                    updateDayCell(info.date, info.el);
                 },
-                
-                // ปรับแต่งการแสดงผลกิจกรรมในหน้าปฏิทิน
-                eventContent: function(arg) {
-                    return {
-                        html: `<div class="event-minimal">
-                                <span class="event-dot" style="background:${arg.event.backgroundColor}"></span>
-                                <span class="event-label">${arg.event.title}</span>
-                               </div>`
-                    };
-                },
-                
-                // เมื่อคลิกที่วันที่ หรือคลิกที่ "+ more"
-                dateClick: (info) => showDailyEvents(info.dateStr),
-                eventClick: (info) => {
-                    info.jsEvent.preventDefault();
-                    showDailyEvents(info.event.startStr.split('T')[0]);
-                }
+
+                // เมื่อคลิกที่วันที่
+                dateClick: (info) => showDailyEvents(info.dateStr)
             });
             calendar.render();
         });
+
+        // ฟังก์ชันสร้าง Badge ตัวเลขในแต่ละวัน
+        function updateDayCell(date, cellEl) {
+            const dateStr = date.toISOString().split('T')[0];
+            const events = filterData(allEventsRaw).filter(e => e.start.startsWith(dateStr));
+            
+            // ลบ Badge เก่าออกก่อน (ถ้ามี)
+            const oldBadge = cellEl.querySelector('.event-count-container');
+            if (oldBadge) oldBadge.remove();
+
+            if (events.length > 0) {
+                const container = document.createElement('div');
+                container.className = 'event-count-container';
+                container.innerHTML = `<span class="event-count-badge">${events.length} รายการ</span>`;
+                cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
+            }
+        }
 
         async function handleFilterChange() {
             const checked = document.querySelectorAll('input[type="checkbox"]:checked').length > 0;
@@ -160,10 +179,12 @@
                 try {
                     const res = await fetch(gasUrl);
                     allEventsRaw = await res.json();
-                } catch (e) { alert('เกิดข้อผิดพลาดในการโหลดข้อมูล'); }
+                } catch (e) { alert('โหลดข้อมูลไม่สำเร็จ'); }
                 document.getElementById('loading').classList.add('hidden');
             }
-            calendar.refetchEvents();
+            
+            // อัปเดต Badge ทุกช่องวันที่
+            calendar.render(); 
         }
 
         function filterData(events) {
@@ -179,32 +200,30 @@
         }
 
         function showDailyEvents(dateStr) {
-            // ดึงกิจกรรมที่ผ่านการกรองแล้ว เฉพาะของวันที่เลือก
             const events = filterData(allEventsRaw).filter(e => e.start.startsWith(dateStr));
             const container = document.getElementById('dailyEventsContainer');
-            const dateObj = new Date(dateStr);
             
-            document.getElementById('modalDate').innerText = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('modalDate').innerText = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
             container.innerHTML = '';
 
             if (events.length === 0) {
-                container.innerHTML = '<div class="text-center py-12 text-slate-400 font-medium">ไม่มีกิจกรรมสำหรับวันนี้</div>';
+                container.innerHTML = '<div class="text-center py-12 text-slate-400 font-medium">ไม่มีกิจกรรมในวันที่เลือก</div>';
             } else {
                 events.forEach(ev => {
                     const card = document.createElement('div');
-                    card.className = 'event-card shadow-sm';
+                    card.className = 'event-card';
                     card.style.borderColor = ev.backgroundColor;
                     
                     let desc = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
                     const urlRegex = /(https?:\/\/[^\s]+)/g;
                     desc = desc.replace(urlRegex, (url) => `
-                        <a href="${url}" target="_blank" class="block mt-3 p-3 bg-white text-indigo-600 rounded-xl text-sm font-bold border border-slate-200 text-center hover:bg-slate-50 transition-colors shadow-sm">📎 เปิดเอกสารแนบ</a>
+                        <a href="${url}" target="_blank" class="block mt-3 p-3 bg-indigo-600 text-white rounded-xl text-sm font-bold text-center shadow-md">📎 เปิดเอกสารแนบ</a>
                     `);
 
                     card.innerHTML = `
                         <div class="event-card-dept" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
                         <div class="event-card-title">${ev.title}</div>
-                        <div class="event-card-desc whitespace-pre-line">${desc}</div>
+                        <div class="text-xs text-slate-500 whitespace-pre-line">${desc}</div>
                     `;
                     container.appendChild(card);
                 });
@@ -213,7 +232,6 @@
         }
 
         function closeModal() { document.getElementById('dayModal').style.display = 'none'; }
-        window.onclick = (e) => { if (e.target == document.getElementById('dayModal')) closeModal(); }
     </script>
 </body>
 </html>
