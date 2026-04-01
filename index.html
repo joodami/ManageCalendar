@@ -3,178 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบปฏิทินกิจกรรม - Phiman</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>ปฏิทินกิจกรรม - Phiman Phitthayasan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
         :root {
-            --primary-font: 'Prompt', sans-serif;
+            --bg-main: #f0f4f8;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
         }
         body { 
-            font-family: var(--primary-font); 
-            background: #f8fafc; 
-            color: #0f172a; 
+            font-family: 'Prompt', sans-serif; 
+            background-color: var(--bg-main);
+            color: var(--text-dark);
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
-        /* ปรับแต่งปฏิทินให้ดู Premium */
+        /* --- ปฏิทินหลัก --- */
         .fc { 
             background: white; 
-            border-radius: 2rem; 
-            padding: clamp(1rem, 3vw, 2rem); 
+            border-radius: 2.5rem; 
+            padding: clamp(1rem, 4vw, 2.5rem); 
             border: none !important; 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
         }
-        .fc-header-toolbar { margin-bottom: 2rem !important; }
-        
-        /* ขยายขนาดหัวข้อเดือน */
+        .fc-header-toolbar { margin-bottom: 2.5rem !important; gap: 15px; }
         .fc-toolbar-title { 
-            font-size: clamp(1.4rem, 5vw, 2.2rem) !important; 
-            font-weight: 700 !important; 
-            color: #1e293b;
+            font-size: clamp(1.6rem, 6vw, 2.5rem) !important; 
+            font-weight: 800 !important; 
+            color: #1e1b4b;
         }
 
-        /* ปรับแต่งปุ่มควบคุมปฏิทิน */
+        /* --- ปุ่มควบคุม --- */
         .fc-button {
-            background: #f1f5f9 !important;
-            border: none !important;
-            color: #475569 !important;
-            font-weight: 600 !important;
-            padding: 10px 15px !important;
-            border-radius: 12px !important;
-            text-transform: capitalize !important;
+            background: #ffffff !important;
+            border: 2px solid #e2e8f0 !important;
+            color: #1e293b !important;
+            font-weight: 700 !important;
+            padding: 12px 20px !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
         }
-        .fc-button-active { background: #1e293b !important; color: white !important; }
+        .fc-button-active { background: #1e1b4b !important; color: white !important; border-color: #1e1b4b !important; }
 
-        /* ปรับแต่งช่องวันที่ */
+        /* --- วันที่ในปฏิทิน --- */
         .fc-daygrid-day-number { 
-            font-size: clamp(1rem, 2vw, 1.3rem) !important; 
-            padding: 12px !important; 
-            font-weight: 600;
-            color: #64748b;
-        }
-        .fc-daygrid-day-frame { cursor: pointer; min-height: 100px !important; transition: all 0.2s; }
-        .fc-daygrid-day-frame:hover { background: #f1f5f9; }
-        .fc-day-today { background: #eff6ff !important; }
-
-        /* ป้ายแจ้งเตือนจำนวนงาน (Badge) */
-        .event-count-badge {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+            font-size: 1.25rem !important; 
+            padding: 15px !important; 
             font-weight: 700;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-            animation: fadeIn 0.3s ease;
+            color: #334155;
+        }
+        .fc-daygrid-day-frame { min-height: 110px !important; cursor: pointer; transition: 0.2s; }
+        .fc-daygrid-day-frame:hover { background: #f8fafc; }
+        .fc-day-today { background: #eef2ff !important; }
+        .fc-day-today .fc-daygrid-day-number { color: #4f46e5; }
+
+        /* --- ป้ายแจ้งเตือน (Badge) --- */
+        .event-count-badge {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 800;
+            box-shadow: 0 8px 15px -3px rgba(99, 102, 241, 0.5);
+            display: inline-block;
         }
 
-        /* Modal: ปรับให้ใหญ่และอ่านง่ายขึ้น */
+        /* --- Modal รายละเอียด --- */
         #dayModal { 
             display: none; position: fixed; inset: 0; 
-            background: rgba(15, 23, 42, 0.85); z-index: 9999; 
-            align-items: center; justify-content: center; padding: 1.5rem; 
-            backdrop-filter: blur(12px); 
+            background: rgba(2, 6, 23, 0.9); z-index: 9999; 
+            align-items: center; justify-content: center; padding: 10px; 
+            backdrop-filter: blur(10px); 
         }
         .modal-content { 
-            background: white; border-radius: 2.5rem; 
-            max-width: 550px; width: 100%; max-height: 85vh; 
+            background: white; border-radius: 3rem; 
+            max-width: 600px; width: 100%; max-height: 90vh; 
             display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         
-        /* การ์ดกิจกรรมใน Modal */
+        /* --- การ์ดกิจกรรม --- */
         .event-card { 
-            border-left: 8px solid; background: #f8fafc; 
-            padding: 24px; border-radius: 1.5rem; margin-bottom: 1rem;
-            transition: transform 0.2s;
+            border-left: 10px solid; background: white; 
+            padding: 24px; border-radius: 2rem; margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+            border-top: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
         }
         .event-card-title { 
-            font-size: clamp(1.1rem, 3vw, 1.4rem); 
-            font-weight: 700; color: #0f172a; line-height: 1.4;
+            font-size: 1.5rem; 
+            font-weight: 800; color: #0f172a; line-height: 1.3;
+            margin-bottom: 8px;
         }
-        .event-card-dept { font-size: 0.85rem; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .event-card-dept { font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; }
+        .event-card-desc { font-size: 1.15rem; color: #475569; line-height: 1.6; font-weight: 500; }
 
-        /* Filter Pills */
+        /* --- ฟิลเตอร์ (Pills) --- */
         .filter-item { 
             display: flex; align-items: center; background: white; 
-            padding: clamp(10px, 2vw, 14px) clamp(20px, 3vw, 28px); 
-            border-radius: 1.5rem; border: 2px solid #e2e8f0; 
-            font-size: clamp(0.9rem, 2vw, 1.1rem); font-weight: 700; 
-            cursor: pointer; transition: all 0.2s;
+            padding: 14px 24px; border-radius: 20px; border: 3px solid #e2e8f0; 
+            font-size: 1.1rem; font-weight: 800; 
+            cursor: pointer; transition: 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);
         }
-        .filter-item:has(input:checked) { border-color: currentColor; background: rgba(0,0,0,0.02); }
-        .filter-item input { width: 22px; height: 22px; cursor: pointer; }
+        .filter-item:has(input:checked) { border-color: currentColor; background: #fff; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .filter-item input { width: 24px; height: 24px; cursor: pointer; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* สำหรับมือถือที่หน้าจอเล็กมาก */
+        /* --- สำหรับมือถือโดยเฉพาะ --- */
         @media (max-width: 640px) {
-            .fc-daygrid-day-frame { min-height: 80px !important; }
-            .fc-header-toolbar { flex-direction: column !important; align-items: center !important; }
-            .event-count-badge { padding: 4px 10px; }
+            body { padding: 10px; }
+            .fc { padding: 1rem; border-radius: 1.5rem; }
+            .fc-header-toolbar { flex-direction: column !important; }
+            .fc-daygrid-day-frame { min-height: 85px !important; }
+            .event-count-badge { font-size: 0.85rem; padding: 5px 10px; border-radius: 10px; }
+            .event-card { padding: 20px; }
+            .event-card-title { font-size: 1.3rem; }
+            .event-card-desc { font-size: 1.1rem; }
+            .modal-content { border-radius: 2rem; }
+            .filter-item { padding: 10px 15px; font-size: 0.95rem; }
         }
+
+        .fc-daygrid-event-harness { display: none !important; } 
     </style>
 </head>
-<body class="p-4 md:p-12 lg:p-16">
+<body class="p-2 md:p-10 lg:p-16">
 
     <div id="dayModal" onclick="if(event.target==this) closeModal()">
-        <div class="modal-content animate-in zoom-in duration-300">
-            <div class="p-8 border-b flex justify-between items-start bg-white">
+        <div class="modal-content animate-in slide-in-from-bottom duration-500">
+            <div class="p-8 border-b flex justify-between items-start bg-white sticky top-0 z-10">
                 <div>
                     <h2 id="modalDate" class="text-3xl font-extrabold text-slate-900 tracking-tight"></h2>
-                    <p class="text-lg text-indigo-600 font-bold mt-1">📌 รายการกิจกรรมประจำวัน</p>
+                    <p class="text-indigo-600 font-extrabold mt-1 text-lg">🗓️ กิจกรรมวันนี้</p>
                 </div>
-                <button onclick="closeModal()" class="p-3 hover:bg-slate-100 rounded-full text-slate-400 transition-all">
+                <button onclick="closeModal()" class="p-3 bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
             </div>
-            <div id="dailyEventsContainer" class="p-8 overflow-y-auto space-y-6 bg-slate-50/50">
+            <div id="dailyEventsContainer" class="p-6 md:p-10 overflow-y-auto space-y-6 bg-slate-50">
                 </div>
             <div class="p-6 bg-white border-t">
-                <button onclick="closeModal()" class="w-full py-5 bg-slate-900 text-white rounded-2xl text-xl font-bold shadow-xl active:scale-[0.98] transition-all">เข้าใจแล้ว</button>
+                <button onclick="closeModal()" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-3xl text-2xl font-black shadow-2xl transition-all active:scale-95">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-12 flex flex-col lg:flex-row justify-between items-center gap-8">
+        <header class="mb-10 flex flex-col lg:flex-row justify-between items-center gap-8">
             <div class="flex items-center gap-6">
-                <div class="p-4 bg-white rounded-3xl shadow-sm border border-slate-100">
+                <div class="p-4 bg-white rounded-[2rem] shadow-xl">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Emblem_of_Thailand.svg/100px-Emblem_of_Thailand.svg.png" 
-                         alt="Logo" class="w-16 h-16 md:w-20 md:h-20 object-contain">
+                         alt="School Logo" class="w-16 h-16 md:w-24 md:h-24 object-contain">
                 </div>
                 <div>
-                    <h1 class="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter">ปฏิทินกิจกรรมรวม</h1>
-                    <p class="text-lg md:text-xl font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Phiman Phitthayasan</p>
+                    <h1 class="text-3xl md:text-6xl font-black text-slate-900 tracking-tighter leading-none">ปฏิทินกิจกรรม</h1>
+                    <p class="text-lg md:text-2xl font-bold text-indigo-500 mt-2">โรงเรียนพิมานพิทยาสรรค์</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap gap-3 justify-center">
-                <div class="filter-item border-[#8B5CF6] text-[#8B5CF6]">
-                    <input type="checkbox" id="filter-director" onchange="handleFilterChange()" class="accent-[#8B5CF6]">
-                    <label for="filter-director" class="ml-3">งาน ผอ.</label>
+                <div class="filter-item border-[#6366f1] text-[#6366f1]">
+                    <input type="checkbox" id="filter-director" onchange="handleFilterChange()" class="accent-[#6366f1]">
+                    <label for="filter-director" class="ml-3">ผอ.</label>
                 </div>
                 <div class="filter-item border-[#0ea5e9] text-[#0ea5e9]">
                     <input type="checkbox" id="filter-school" onchange="handleFilterChange()" class="accent-[#0ea5e9]">
-                    <label for="filter-school" class="ml-3">กิจกรรมโรงเรียน</label>
+                    <label for="filter-school" class="ml-3">กิจกรรม</label>
                 </div>
                 <div class="filter-item border-[#10b981] text-[#10b981]">
                     <input type="checkbox" id="filter-vehicle" onchange="handleFilterChange()" class="accent-[#10b981]">
-                    <label for="filter-vehicle" class="ml-3">งานยานพาหนะ</label>
+                    <label for="filter-vehicle" class="ml-3">ยานพาหนะ</label>
                 </div>
             </div>
         </header>
 
-        <div id="instruction" class="text-center py-8 px-10 bg-indigo-600 text-white rounded-[2.5rem] mb-12 shadow-2xl shadow-indigo-200">
-            <p class="text-xl md:text-2xl font-black italic animate-pulse">👉 โปรดเลือกประเภทปฏิทินที่ต้องการดู 👈</p>
+        <div id="instruction" class="text-center py-10 px-8 bg-white border-4 border-dashed border-indigo-200 rounded-[3rem] mb-10">
+            <p class="text-2xl md:text-3xl font-black text-indigo-400 animate-bounce">👆 กรุณาเลือกรายการที่ต้องการดูด้านบน</p>
         </div>
 
         <div class="relative">
-            <div id="loading" class="hidden absolute inset-0 bg-white/90 z-20 flex flex-col justify-center items-center rounded-[2rem] backdrop-blur-md">
-                <div class="w-20 h-20 border-8 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-                <p class="text-2xl font-black text-slate-800">กำลังดึงข้อมูลกิจกรรม...</p>
+            <div id="loading" class="hidden absolute inset-0 bg-white/95 z-20 flex flex-col justify-center items-center rounded-[3rem] backdrop-blur-xl">
+                <div class="w-24 h-24 border-[10px] border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+                <p class="text-2xl font-black text-slate-800">กำลังเตรียมข้อมูล...</p>
             </div>
             <div id='calendar'></div>
         </div>
@@ -215,8 +229,8 @@
 
             if (events.length > 0) {
                 const container = document.createElement('div');
-                container.className = 'event-count-container flex justify-center items-center mt-2';
-                container.innerHTML = `<span class="event-count-badge">${events.length} รายการ</span>`;
+                container.className = 'event-count-container flex justify-center items-center mt-1';
+                container.innerHTML = `<span class="event-count-badge">${events.length} งาน</span>`;
                 cellEl.querySelector('.fc-daygrid-day-frame').appendChild(container);
             }
         }
@@ -230,7 +244,7 @@
                 try {
                     const res = await fetch(gasUrl);
                     allEventsRaw = await res.json();
-                } catch (e) { alert('ขออภัย! ไม่สามารถดึงข้อมูลได้ในขณะนี้'); }
+                } catch (e) { alert('ไม่สามารถเชื่อมต่อข้อมูลได้'); }
                 document.getElementById('loading').classList.add('hidden');
             }
             calendar.render(); 
@@ -256,28 +270,26 @@
             
             if (events.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-16">
-                        <div class="text-6xl mb-4">🗓️</div>
-                        <p class="text-xl text-slate-400 font-bold">ไม่มีกิจกรรมสำหรับวันนี้</p>
+                    <div class="text-center py-20">
+                        <p class="text-2xl text-slate-400 font-bold">ไม่มีกิจกรรมในวันนี้</p>
                     </div>`;
             } else {
                 events.forEach(ev => {
                     const card = document.createElement('div');
-                    card.className = 'event-card shadow-sm';
+                    card.className = 'event-card';
                     card.style.borderColor = ev.backgroundColor;
                     
                     let desc = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
                     const urlRegex = /(https?:\/\/[^\s]+)/g;
                     desc = desc.replace(urlRegex, (url) => `
-                        <a href="${url}" target="_blank" class="flex items-center justify-center gap-2 mt-4 p-4 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-indigo-700 transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                            คลิกเพื่อเปิดเอกสารแนบ
+                        <a href="${url}" target="_blank" class="flex items-center justify-center gap-3 mt-6 p-5 bg-indigo-600 text-white rounded-[1.5rem] text-lg font-black shadow-xl hover:scale-105 transition-all">
+                            📎 เปิดดูเอกสารแนบ
                         </a>`);
 
                     card.innerHTML = `
                         <div class="event-card-dept" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
                         <div class="event-card-title">${ev.title}</div>
-                        <div class="text-base text-slate-500 font-medium whitespace-pre-line mt-2">${desc}</div>
+                        <div class="event-card-desc whitespace-pre-line">${desc}</div>
                     `;
                     container.appendChild(card);
                 });
