@@ -271,49 +271,64 @@
     }
 
     function updateListView() {
-        const container = document.getElementById('listContainer');
-        if (!container) return;
-        const now = new Date();
-        const events = filterData(allEventsRaw).filter(e => {
-            const evDate = new Date(e.start);
-            return evDate.getMonth() === now.getMonth() && evDate.getFullYear() === now.getFullYear();
-        });
-        
-        container.innerHTML = '';
-        if (events.length === 0) {
-            container.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold border border-slate-200">ไม่มีกิจกรรมในเดือนนี้</div>';
-            return;
-        }
-
-        const groups = {};
-        events.forEach(ev => {
-            const dateKey = ev.start.split('T')[0];
-            if (!groups[dateKey]) groups[dateKey] = [];
-            groups[dateKey].push(ev);
-        });
-
-        Object.keys(groups).sort().forEach(dateStr => {
-            const dateEvents = groups[dateStr];
-            const dateThai = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-            let rowsHtml = '';
-            dateEvents.forEach(ev => {
-                const eventData = JSON.stringify({title: ev.title, date: dateStr}).replace(/"/g, '&quot;');
-                rowsHtml += `
-                    <div class="event-item-row">
-                        <div class="dept-indicator" style="background-color:${ev.backgroundColor}"></div>
-                        <div class="flex-1">
-                            <div class="text-[9px] font-black uppercase" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
-                            <div class="text-base font-bold text-slate-900">${ev.title}</div>
-                            <button onclick="showSingleEvent('${eventData}')" class="text-[11px] font-bold text-blue-700 underline">รายละเอียด</button>
-                        </div>
-                    </div>`;
-            });
-            const card = document.createElement('div');
-            card.className = 'date-group-card';
-            card.innerHTML = `<div class="date-header"><span>${dateThai}</span><span class="text-[10px] bg-white text-blue-900 px-2 py-0.5">${dateEvents.length} งาน</span></div>${rowsHtml}`;
-            container.appendChild(card);
-        });
+    const container = document.getElementById('listContainer');
+    if (!container) return;
+    const now = new Date();
+    const events = filterData(allEventsRaw).filter(e => {
+        const evDate = new Date(e.start);
+        return evDate.getMonth() === now.getMonth() && evDate.getFullYear() === now.getFullYear();
+    });
+    
+    container.innerHTML = '';
+    if (events.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold border border-slate-200">ไม่มีกิจกรรมในเดือนนี้</div>';
+        return;
     }
+
+    const groups = {};
+    events.forEach(ev => {
+        const dateKey = ev.start.split('T')[0];
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(ev);
+    });
+
+    Object.keys(groups).sort().forEach(dateStr => {
+        const dateEvents = groups[dateStr];
+        const dateThai = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        const card = document.createElement('div');
+        card.className = 'date-group-card';
+        
+        let header = `<div class="date-header"><span>${dateThai}</span><span class="text-[10px] bg-white text-blue-900 px-2 py-0.5">${dateEvents.length} งาน</span></div>`;
+        card.innerHTML = header;
+
+        dateEvents.forEach(ev => {
+            const row = document.createElement('div');
+            row.className = "event-item-row";
+            row.innerHTML = `
+                <div class="dept-indicator" style="background-color:${ev.backgroundColor}"></div>
+                <div class="flex-1">
+                    <div class="text-[9px] font-black uppercase" style="color:${ev.backgroundColor}">${ev.extendedProps.dept}</div>
+                    <div class="text-base font-bold text-slate-900">${ev.title}</div>
+                </div>`;
+            
+            // สร้างปุ่มรายละเอียดแบบปลอดภัย
+            const btn = document.createElement('button');
+            btn.className = "text-[11px] font-bold text-blue-700 underline mt-1";
+            btn.innerText = "รายละเอียด";
+            btn.onclick = () => {
+                const modalContainer = document.getElementById('dailyEventsContainer');
+                document.getElementById('modalDate').innerText = "รายละเอียดกิจกรรม";
+                modalContainer.innerHTML = '';
+                renderEventDetail(ev, modalContainer);
+                document.getElementById('dayModal').style.display = 'flex';
+            };
+            row.querySelector('.flex-1').appendChild(btn);
+            card.appendChild(row);
+        });
+        container.appendChild(card);
+    });
+}
 
     function showSingleEvent(jsonStr) {
         const target = JSON.parse(jsonStr);
@@ -327,44 +342,44 @@
         }
     }
 
-    function showDailyEvents(dateStr) {
-        const events = filterData(allEventsRaw).filter(e => e.start.split('T')[0] === dateStr);
-        const container = document.getElementById('dailyEventsContainer');
-        document.getElementById('modalDate').innerText = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-        container.innerHTML = '';
-        if (events.length === 0) {
-            container.innerHTML = '<p class="text-center py-5 text-slate-500">ไม่มีกิจกรรมในวันนี้</p>';
-        } else {
-            events.forEach(ev => renderEventDetail(ev, container));
-        }
-        document.getElementById('dayModal').style.display = 'flex';
+function showDailyEvents(dateStr) {
+    const events = filterData(allEventsRaw).filter(e => e.start.split('T')[0] === dateStr);
+    const container = document.getElementById('dailyEventsContainer');
+    document.getElementById('modalDate').innerText = new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    container.innerHTML = '';
+    if (events.length === 0) {
+        container.innerHTML = '<p class="text-center py-5 text-slate-500">ไม่มีกิจกรรมในวันนี้</p>';
+    } else {
+        events.forEach(ev => renderEventDetail(ev, container));
     }
+    document.getElementById('dayModal').style.display = 'flex';
+}
 
   function renderEventDetail(ev, container) {
     const div = document.createElement('div');
     div.className = 'p-4 bg-white border border-slate-200 mb-3';
     div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
     
-    // ดึงค่า description ออกมา
     let description = ev.extendedProps.description || '';
     
-    // ค้นหา URL ทั้งหมด (รวมถึงลิงก์ที่พิมพ์เองและลิงก์ไฟล์แนบ)
+    // ค้นหา URL ทั้งหมด
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = description.match(urlRegex) || [];
     
-    // ทำความสะอาดข้อความ ไม่ให้โชว์ลิงก์ยาวๆ ในช่องรายละเอียด
+    // ลบ URL และข้อความระบบออกเพื่อให้เหลือแต่คำบรรยายสะอาดๆ
     let cleanDesc = description.replace(urlRegex, '').replace(/\[ไฟล์แนบจากระบบ\]/g, '').trim();
 
-    let attachmentButtons = '';
+    // สร้างปุ่มไฟล์แนบ (ใช้การสร้าง Element แทนการเขียน String เพื่อป้องกันโควทตีกัน)
+    let attachmentArea = document.createElement('div');
     if (urls.length > 0) {
-        // ใช้ Set เพื่อป้องกันลิงก์ซ้ำ
         const uniqueUrls = [...new Set(urls)];
         uniqueUrls.forEach(url => {
-            attachmentButtons += `
-                <a href="${url}" target="_blank" 
-                   class="block mt-3 p-3 bg-emerald-600 text-white text-center font-bold text-sm rounded-md hover:bg-emerald-700 transition-all shadow-md">
-                   📄 คลิกเพื่อเปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง
-                </a>`;
+            const btn = document.createElement('a');
+            btn.href = url.trim();
+            btn.target = "_blank";
+            btn.className = "block mt-3 p-3 bg-emerald-600 text-white text-center font-bold text-sm rounded-md hover:bg-emerald-700 transition-all shadow-md no-underline";
+            btn.innerHTML = "📄 เปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง";
+            attachmentArea.appendChild(btn);
         });
     }
 
@@ -374,8 +389,8 @@
         <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">
             ${cleanDesc || 'ไม่มีรายละเอียดระบุไว้'}
         </div>
-        ${attachmentButtons}
     `;
+    div.appendChild(attachmentArea);
     container.appendChild(div);
 }
       
