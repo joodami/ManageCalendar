@@ -369,17 +369,21 @@ function showDailyEvents(dateStr) {
     div.className = 'p-5 bg-white border border-slate-200 mb-4 rounded-lg shadow-sm';
     div.style.borderLeft = `8px solid ${ev.backgroundColor}`;
     
-    const description = ev.extendedProps.description || '';
+    // 1. ดึงข้อความดิบมา
+    const fullDescription = ev.extendedProps.description || '';
     
-    // 1. ตรวจจับลิงก์และล้างค่าขยะ (เช่น < > หรือช่องว่าง) ออกให้สะอาด
-    const urlRegex = /(https?:\/\/[^\s>]+)/g; 
-    const rawUrls = description.match(urlRegex) || [];
+    // 2. แยกลิงก์ออกมา (ล้างค่า < > และช่องว่างทันที)
+    const urlRegex = /(https?:\/\/[^\s<>]+)/g;
+    const allMatches = fullDescription.match(urlRegex) || [];
     
-    // 2. ใช้ Set เพื่อกรองลิงก์ที่ซ้ำกันออก 100%
-    const uniqueUrls = [...new Set(rawUrls.map(u => u.trim().replace(/[<>]/g, '')))];
+    // 3. กรองให้เหลือลิงก์ที่ไม่ซ้ำกัน (Unique)
+    const uniqueUrls = [...new Set(allMatches.map(u => u.trim()))];
     
-    // 3. ลบลิงก์และข้อความระบบออกจากเนื้อหาที่จะโชว์
-    let cleanDesc = description.replace(urlRegex, '').replace(/\[ไฟล์แนบจากระบบ\]/g, '').trim();
+    // 4. สร้างข้อความที่จะแสดงผล (ล้างลิงก์และแท็กระบบออกให้หมดจากเนื้อหา)
+    let cleanText = fullDescription
+        .replace(urlRegex, '') // ลบลิงก์ทั้งหมด
+        .replace(/\[ไฟล์แนบจากระบบ\]/g, '') // ลบข้อความหัวข้อไฟล์แนบ
+        .trim();
 
     div.innerHTML = `
         <div style="background-color:${ev.backgroundColor}; color: white; display: inline-block; padding: 2px 12px; border-radius: 4px; font-weight: 900; font-size: 12px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -387,13 +391,15 @@ function showDailyEvents(dateStr) {
         </div>
         <h3 class="text-xl font-extrabold text-slate-900 leading-tight mb-2">${ev.title}</h3>
         <div class="text-slate-600 text-sm mt-4 border-t border-dashed pt-4 whitespace-pre-line">
-            ${cleanDesc || '<span class="text-slate-400 italic">ไม่มีรายละเอียดระบุไว้</span>'}
+            ${cleanText || '<span class="text-slate-400 italic">ไม่มีรายละเอียดระบุไว้</span>'}
         </div>
     `;
 
+    // 5. สร้างปุ่ม (จะเหลือแค่จำนวนลิงก์ที่ไม่ซ้ำกันจริงๆ)
     if (uniqueUrls.length > 0) {
         const attachmentArea = document.createElement('div');
         attachmentArea.className = "mt-4 space-y-2";
+        
         uniqueUrls.forEach(url => {
             const btn = document.createElement('a');
             btn.href = url;
