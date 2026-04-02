@@ -340,30 +340,30 @@
         document.getElementById('dayModal').style.display = 'flex';
     }
 
-   function renderEventDetail(ev, container) {
+  function renderEventDetail(ev, container) {
     const div = document.createElement('div');
     div.className = 'p-4 bg-white border border-slate-200 mb-3';
     div.style.borderLeft = `6px solid ${ev.backgroundColor}`;
     
-    let description = ev.extendedProps.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+    // ดึงค่า description ออกมา
+    let description = ev.extendedProps.description || '';
     
-    // 1. แยกข้อความรายละเอียด กับ ส่วนที่เป็น URL ออกจากกัน
-    // ใช้ Regex ค้นหา URL ทั้งหมดใน description
+    // ค้นหา URL ทั้งหมด (รวมถึงลิงก์ที่พิมพ์เองและลิงก์ไฟล์แนบ)
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = description.match(urlRegex) || [];
     
-    // 2. ลบ URL ออกจากข้อความหลักเพื่อไม่ให้แสดงซ้ำซ้อน (เลือกเฉพาะข้อความบรรยาย)
+    // ทำความสะอาดข้อความ ไม่ให้โชว์ลิงก์ยาวๆ ในช่องรายละเอียด
     let cleanDesc = description.replace(urlRegex, '').replace(/\[ไฟล์แนบจากระบบ\]/g, '').trim();
 
-    // 3. สร้าง HTML สำหรับปุ่มไฟล์แนบ
     let attachmentButtons = '';
     if (urls.length > 0) {
-        urls.forEach(url => {
-            // ปรับแต่งหน้าตาปุ่มให้ดูเหมือนปุ่มดาวน์โหลดเอกสาร
+        // ใช้ Set เพื่อป้องกันลิงก์ซ้ำ
+        const uniqueUrls = [...new Set(urls)];
+        uniqueUrls.forEach(url => {
             attachmentButtons += `
                 <a href="${url}" target="_blank" 
-                   class="block mt-3 p-3 bg-emerald-50 text-emerald-700 text-center font-bold text-sm border-2 border-emerald-200 rounded-md hover:bg-emerald-100 transition-all shadow-sm">
-                   📄 เปิดไฟล์แนบ / เอกสารอ้างอิง
+                   class="block mt-3 p-3 bg-emerald-600 text-white text-center font-bold text-sm rounded-md hover:bg-emerald-700 transition-all shadow-md">
+                   📄 คลิกเพื่อเปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง
                 </a>`;
         });
     }
@@ -374,11 +374,11 @@
         <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">
             ${cleanDesc || 'ไม่มีรายละเอียดระบุไว้'}
         </div>
-        ${attachmentButtons} 
+        ${attachmentButtons}
     `;
     container.appendChild(div);
 }
-
+      
     function closeModal() { document.getElementById('dayModal').style.display = 'none'; }
 </script>
 </body>
