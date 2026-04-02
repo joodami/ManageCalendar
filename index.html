@@ -362,24 +362,22 @@ function showDailyEvents(dateStr) {
     
     let description = ev.extendedProps.description || '';
     
-    // ค้นหา URL ทั้งหมด
+    // ดึงลิงก์ทั้งหมดออกมา
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = description.match(urlRegex) || [];
     
-    // ลบ URL และข้อความระบบออกเพื่อให้เหลือแต่คำบรรยายสะอาดๆ
+    // ข้อความบรรยายแบบสะอาด
     let cleanDesc = description.replace(urlRegex, '').replace(/\[ไฟล์แนบจากระบบ\]/g, '').trim();
 
-    // สร้างปุ่มไฟล์แนบ (ใช้การสร้าง Element แทนการเขียน String เพื่อป้องกันโควทตีกัน)
-    let attachmentArea = document.createElement('div');
+    let attachmentButtons = '';
     if (urls.length > 0) {
-        const uniqueUrls = [...new Set(urls)];
-        uniqueUrls.forEach(url => {
-            const btn = document.createElement('a');
-            btn.href = url.trim();
-            btn.target = "_blank";
-            btn.className = "block mt-3 p-3 bg-emerald-600 text-white text-center font-bold text-sm rounded-md hover:bg-emerald-700 transition-all shadow-md no-underline";
-            btn.innerHTML = "📄 เปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง";
-            attachmentArea.appendChild(btn);
+        // ใช้ Set เพื่อไม่ให้ลิงก์ซ้ำ
+        [...new Set(urls)].forEach(url => {
+            attachmentButtons += `
+                <a href="${url}" target="_blank" 
+                   class="block mt-3 p-3 bg-emerald-600 text-white text-center font-bold text-sm rounded-md hover:bg-emerald-700 transition-all shadow-md no-underline">
+                   📄 เปิดไฟล์แนบ / เอกสาร PDF
+                </a>`;
         });
     }
 
@@ -389,8 +387,8 @@ function showDailyEvents(dateStr) {
         <div class="text-slate-600 text-sm mt-3 border-t pt-3 whitespace-pre-line">
             ${cleanDesc || 'ไม่มีรายละเอียดระบุไว้'}
         </div>
+        ${attachmentButtons}
     `;
-    div.appendChild(attachmentArea);
     container.appendChild(div);
 }
       
