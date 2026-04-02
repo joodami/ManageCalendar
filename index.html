@@ -369,50 +369,61 @@ function showDailyEvents(dateStr) {
     div.className = 'p-5 bg-white border border-slate-200 mb-4 rounded-lg shadow-sm';
     div.style.borderLeft = `8px solid ${ev.backgroundColor}`;
     
-    // 1. ดึงข้อความดิบมา
     const fullDescription = ev.extendedProps.description || '';
     
-    // 2. แยกลิงก์ออกมา (ล้างค่า < > และช่องว่างทันที)
+    // ดึงลิงก์และล้างอักขระพิเศษออกทั้งหมด
     const urlRegex = /(https?:\/\/[^\s<>]+)/g;
     const allMatches = fullDescription.match(urlRegex) || [];
     
-    // 3. กรองให้เหลือลิงก์ที่ไม่ซ้ำกัน (Unique)
-    const uniqueUrls = [...new Set(allMatches.map(u => u.trim()))];
+    // กรองลิงก์: ล้างช่องว่าง และทำให้เป็นตัวเล็กเพื่อเปรียบเทียบ
+    let cleanUrls = allMatches.map(u => u.trim().replace(/[<>]/g, ''));
     
-    // 4. สร้างข้อความที่จะแสดงผล (ล้างลิงก์และแท็กระบบออกให้หมดจากเนื้อหา)
-    let cleanText = fullDescription
-        .replace(urlRegex, '') // ลบลิงก์ทั้งหมด
-        .replace(/\[ไฟล์แนบจากระบบ\]/g, '') // ลบข้อความหัวข้อไฟล์แนบ
-        .trim();
+    // ใช้ Set กรองซ้ำ และเลือกเฉพาะลิงก์แรกที่เจอของแต่ละไฟล์
+    const uniqueUrls = [...new Set(cleanUrls)];
+    
+    // --- จุดที่แก้ไข: ถ้าลิงก์มันคล้ายกันมาก (เช่นมี ID เดียวกัน) ให้เหลืออันเดียว ---
+    const finalUrls = [];
+    const seenIds = new Set();
+    
+    uniqueUrls.forEach(url => {
+        // ดึง ID ของ Google Drive (ถ้ามี)
+        const driveIdMatch = url.match(/[-\w]{25,}/);
+        if (driveIdMatch) {
+            const id = driveIdMatch[0];
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                finalUrls.push(url);
+            }
+        } else {
+            finalUrls.push(url);
+        }
+    });
+
+    let cleanText = fullDescription.replace(urlRegex, '').replace(/\[ไฟล์แนบจากระบบ\]/g, '').trim();
 
     div.innerHTML = `
-        <div style="background-color:${ev.backgroundColor}; color: white; display: inline-block; padding: 2px 12px; border-radius: 4px; font-weight: 900; font-size: 12px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+        <div style="background-color:${ev.backgroundColor}; color: white; display: inline-block; padding: 2px 12px; border-radius: 4px; font-weight: 900; font-size: 12px; margin-bottom: 10px; text-transform: uppercase;">
             ${ev.extendedProps.dept}
         </div>
-        <h3 class="text-xl font-extrabold text-slate-900 leading-tight mb-2">${ev.title}</h3>
+        <h3 class="text-xl font-extrabold text-slate-900 mb-2">${ev.title}</h3>
         <div class="text-slate-600 text-sm mt-4 border-t border-dashed pt-4 whitespace-pre-line">
-            ${cleanText || '<span class="text-slate-400 italic">ไม่มีรายละเอียดระบุไว้</span>'}
+            ${cleanText || '<span class="text-slate-400 italic">ไม่มีรายละเอียด</span>'}
         </div>
     `;
 
-    // 5. สร้างปุ่ม (จะเหลือแค่จำนวนลิงก์ที่ไม่ซ้ำกันจริงๆ)
-    if (uniqueUrls.length > 0) {
+    if (finalUrls.length > 0) {
         const attachmentArea = document.createElement('div');
         attachmentArea.className = "mt-4 space-y-2";
+        // แสดงแค่ปุ่มเดียว (เอาอันแรกที่เจอ)
+        const firstUrl = finalUrls[0]; 
         
-        uniqueUrls.forEach(url => {
-            const btn = document.createElement('a');
-            btn.href = url;
-            btn.target = "_blank";
-            btn.className = "flex items-center justify-center gap-2 w-full p-3 bg-emerald-600 text-white font-bold text-sm rounded-md hover:bg-emerald-700 transition-all no-underline shadow-sm";
-            btn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
-                </svg>
-                เปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง
-            `;
-            attachmentArea.appendChild(btn);
-        });
+        const btn = document.createElement('a');
+        btn.href = firstUrl;
+        btn.target = "_blank";
+        btn.className = "flex items-center justify-center gap-2 w-full p-3 bg-emerald-600 text-white font-bold text-sm rounded-md no-underline";
+        btn.innerHTML = `📂 เปิดไฟล์แนบ / ลิงก์ที่เกี่ยวข้อง`;
+        attachmentArea.appendChild(btn);
+        
         div.appendChild(attachmentArea);
     }
     container.appendChild(div);
